@@ -13,30 +13,22 @@
             <field name="arch" type="xml">
 
                <field name="payment_term_id" position="after" >
-                   <field name="add_third" string="income third party"/>
+                   <field name="add_third" string="Activar ingreso para tercero"/>
                </field>
 
                 <field name="invoice_line_ids" position="after" >
-                    <notebook>
-                        <page string="income third party">
-                            <group>
-                                <tree>
-                                    <field name="product_id2" />
-                                    <field name="account_id2" />
-                                    <field name="invoice_id2" />
-                                    <field name="journal_id2" />
-                                    <field name="price_total2" />
-                                </tree>
-                            </group>
-                            <group>
-                                <field name="field_total" attrs="{'invisible': ['|',('add_third', '=', False)]}"/>
-                            </group>
-                        </page>
-                    </notebook>
+                        <group>
+                            <field name="product_id2" attrs="{'invisible': ['|',('add_third', '=', False)]}" />
+                            <field name="account_id2" attrs="{'invisible': ['|',('add_third', '=', False)]}" />
+                            <field name="invoice_id2" attrs="{'invisible': ['|',('add_third', '=', False)]}" />
+                            <field name="price_total2" string="Total: " attrs="{'invisible': ['|',('add_third', '=', False)]}" />
+                        </group>
                </field>
 
+                <field name="residual" position="after" >
+                   <field name="field_total" string="Total a pagar: "/>
+               </field>
             </field>
         </record>
-
     </data>
 </odoo>

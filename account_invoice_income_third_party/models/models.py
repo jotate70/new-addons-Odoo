@@ -11,8 +11,8 @@ class AccountInvoice(models.Model):
 
 
     # Valores ingresos para terceros
-    name2 = fields.Text(string='Description', required=True)
-    product_id2 = fields.Many2one('product.product', string='Product',
+    name2 = fields.Text(string='Descripción', required=True)
+    product_id2 = fields.Many2one('product.product', string='Producto',
                                   ondelete='cascade',
                                   help="Select a product which will use "
                                        "analytic account specified in "
@@ -23,19 +23,19 @@ class AccountInvoice(models.Model):
                                        "analytic account)")
     account_id2 = fields.Many2one(
         comodel_name="account.account",
-        string="Account",
+        string="Cuenta",
         required=True,
         help="The account of the forecast line is only for informative purpose",
     )
-    invoice_id2 = fields.Many2one('account.invoice', string='Invoice Reference',
+    invoice_id2 = fields.Many2one('account.invoice', string='Referencia de pago',
                                  ondelete='cascade', index=True)
-    journal_id2 = fields.Many2one('account.journal', string='Payment Journal',
+    journal_id2 = fields.Many2one('account.journal', string='Diario de pago',
                                  required=True,
                                  domain=[('type', 'in', ('bank', 'cash'))])
     account_analytic_id2 = fields.Many2one('account.analytic.account',
-                                          string='Analytic Account')
+                                          string='Cuenta analitica')
     analytic_tag_ids2 = fields.Many2many('account.analytic.tag',
-                                        string='Analytic Tags')
+                                        string='Etiqueta analitica')
     quantity2 = fields.Float()
     price_total2 = fields.Monetary()
 
