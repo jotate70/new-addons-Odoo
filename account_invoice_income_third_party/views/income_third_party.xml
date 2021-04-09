@@ -3,18 +3,40 @@
 
     <!-- session form view -->
     <!-- creamos personalización de vista heredada -->
+
     <data>
+
         <record model="ir.ui.view" id="account_income_third_party">
-            <field name="name">account.invoice.income_third_party"</field>
+            <field name="name">account.invoice.income_third_party</field>
             <field name="model">account.invoice</field>
             <field name="inherit_id" ref="account.invoice_form"/>
             <field name="arch" type="xml">
 
-               <field name="invoice_line_ids" position="after" >
-                    <field name="add_third" string="income third party"/>
+               <field name="payment_term_id" position="after" >
+                   <field name="add_third" string="income third party"/>
                </field>
+
+                <field name="invoice_line_ids" position="after" >
+                    <notebook>
+                        <page string="income third party">
+                            <group>
+                                <tree>
+                                    <field name="product_id2" />
+                                    <field name="account_id2" />
+                                    <field name="invoice_id2" />
+                                    <field name="journal_id2" />
+                                    <field name="price_total2" />
+                                </tree>
+                            </group>
+                            <group>
+                                <field name="field_total" attrs="{'invisible': ['|',('electronic_picking', '=', False)]}"/>
+                            </group>
+                        </page>
+                    </notebook>
+               </field>
+
             </field>
         </record>
-    </data>
 
+    </data>
 </odoo>
