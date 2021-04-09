@@ -11,7 +11,6 @@ class AccountInvoice(models.Model):
 
 
     # Valores ingresos para terceros
-    name2 = fields.Text(string='Descripción', required=True)
     product_id2 = fields.Many2one('product.product', string='Producto',
                                   ondelete='cascade',
                                   help="Select a product which will use "
