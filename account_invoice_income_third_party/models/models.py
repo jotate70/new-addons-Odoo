@@ -7,11 +7,9 @@ class AccountInvoice(models.Model):
     _description = "income third party"
 
     add_third = fields.Boolean()
-    invoice_line_ids2 = fields.One2many('account.invoice', 'invoice_id2', ' income third party')
-
 
     # Valores ingresos para terceros
-    product_id2 = fields.Many2one('product.product', string='Producto',
+    product_id2 = fields.Many2one('product.product',
                                   ondelete='cascade',
                                   help="Select a product which will use "
                                        "analytic account specified in "
@@ -22,19 +20,8 @@ class AccountInvoice(models.Model):
                                        "analytic account)")
     account_id2 = fields.Many2one(
         comodel_name="account.account",
-        string="Cuenta",
-        required=True,
         help="The account of the forecast line is only for informative purpose",
     )
-    invoice_id2 = fields.Many2one('account.invoice', string='Referencia de pago',
-                                 ondelete='cascade', index=True)
-    journal_id2 = fields.Many2one('account.journal', string='Diario de pago',
-                                 required=True,
-                                 domain=[('type', 'in', ('bank', 'cash'))])
-    account_analytic_id2 = fields.Many2one('account.analytic.account',
-                                          string='Cuenta analitica')
-    analytic_tag_ids2 = fields.Many2many('account.analytic.tag',
-                                        string='Etiqueta analitica')
     quantity2 = fields.Float()
     price_total2 = fields.Monetary()
 
@@ -43,22 +30,24 @@ class AccountInvoice(models.Model):
     def compute_field(self):
         self.field_total = self.price_total2 + self.amount_total
 
-    field_total = fields.Float('Total a pagar:', compute=compute_field)
+    field_total = fields.Float(compute=compute_field)
 
-# Income thrid party model
-class Income_thrid_party(models.Model):
-    _name = "account.income_thrid_party_table"
-    _description = "Income thrid party"
+    # Income thrid party model
+    class Income_thrid_party(models.Model):
+        _name = "account.income_thrid_party_table"
+        _inherit = ['portal.mixin', 'mail.thread', 'mail.activity.mixin']
+        _description = "Income thrid party"
 
-    name = fields.Char()
-    product_id = fields.Char()
-    account_id = fields.Char()
-    invoice_id2 = fields.Char()
-    journal_id2 = fields.Char()
-    account_analytic_id2 = fields.Char()
-    analytic_tag_ids2 = fields.Char()
-    quantity = fields.Float()
-    price_total = fields.Float()
+        product_id = fields.Char(string='Concepto')
+        referencia = fields.Char(string='Referencia')
+        account_id = fields.Char(string='Cuenta')
+        account_analytic_id = fields.Char('Cuenta analitica')
+        analytic_tag_ids = fields.Char('Etiqueta analitica')
+        price = fields.Float('Valor')
+
+
+
+
 
 
 

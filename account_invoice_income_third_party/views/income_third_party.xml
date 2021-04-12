@@ -17,18 +17,19 @@
                </field>
 
                 <field name="invoice_line_ids" position="after" >
-                        <group>
-                            <field name="product_id2" attrs="{'invisible': ['|',('add_third', '=', False)]}" />
-                            <field name="account_id2" attrs="{'invisible': ['|',('add_third', '=', False)]}" />
-                            <field name="invoice_id2" attrs="{'invisible': ['|',('add_third', '=', False)]}" />
-                            <field name="price_total2" string="Total: " attrs="{'invisible': ['|',('add_third', '=', False)]}" />
-                        </group>
+                    <group>
+                        <field name="product_id2" string="Concepto: " attrs="{'invisible': ['|',('add_third', '=', False)]}" />
+                        <field name="account_id2" string="Cuenta: " attrs="{'invisible': ['|',('add_third', '=', False)]}" />
+                        <field name="price_total2" string="Total: " attrs="{'invisible': ['|',('add_third', '=', False)]}" />
+                    </group>
                </field>
 
                 <field name="residual" position="after" >
-                   <field name="field_total" string="Total a pagar: "/>
+                   <field name="field_total" string="Total a pagar: " attrs="{'invisible': ['|',('add_third', '=', False)]}"/>
                </field>
+
             </field>
         </record>
     </data>
 </odoo>
+
