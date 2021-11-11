@@ -5,7 +5,7 @@ from odoo import models, fields, api, exceptions
 class helpdesk_ticket_extended(models.Model):
     _inherit = 'helpdesk.ticket'
 
-    x_project = fields.Many2one(comodel_name='helpdesk_project', string='Project', required="True")
+    x_project = fields.Many2one(comodel_name='helpdesk_project', string='Proyecto', required="True")
     x_family = fields.Many2one(comodel_name='helpdesk_family', string='Familia', required="True")
     x_sub_group = fields.Many2one(comodel_name='helpdesk_sub_group', string='Sub grupo', required="True")
 
@@ -18,15 +18,15 @@ class helpdesk_ticket_extended(models.Model):
 class helpdesk_users(models.Model):
     _inherit = 'res.users'
 
-    x_project = fields.Many2many(comodel_name='helpdesk_project', relation='helpdesk_project_relation', columnn1='id', columnn2='name', string='Project')
+    x_project = fields.Many2many(comodel_name='helpdesk_project', relation='helpdesk_project_relation', columnn1='id', columnn2='name', string='Proyecto')
 
 # creamos modelo proyecto
 class helpdesk_project(models.Model):
     _name = 'helpdesk_project'
     _description = 'Familia en mesa de ayuda'
 
-    name = fields.Char(string='Nombre del proyecto', required="True")
-    x_code = fields.Char(string='Código del proyecto', required="True")
+    name = fields.Char(string='Nombre', required="True")
+    x_code = fields.Char(string='Código', required="True")
 
     # Restricción a nivel de SQL
     _sql_constraints = [
@@ -42,9 +42,9 @@ class helpdesk_family(models.Model):
     _name = 'helpdesk_family'
     _description = 'Familia en mesa de ayuda'
 
-    name = fields.Char(string='Nombre de la familia', required="True")
-    x_code = fields.Char(string='Código de la familia', required="True")
-    x_sub_group = fields.Many2many(comodel_name='helpdesk_sub_group', relation='helpdesk_relation_f_a_s', columnn1='id', columnn2='name', string='Familia', readonly='False')
+    name = fields.Char(string='Nombre', required="True")
+    x_code = fields.Char(string='Código', required="True")
+    x_sub_group = fields.Many2many(comodel_name='helpdesk_sub_group', relation='helpdesk_relation_f_a_s', columnn1='id', columnn2='name', string='Sub grupo', readonly='False')
 
     # Restricción a nivel de SQL
     _sql_constraints = [
@@ -60,9 +60,9 @@ class helpdesk_sub_group(models.Model):
     _name = 'helpdesk_sub_group'
     _description = 'Sub grupo en mesa de ayuda'
 
-    name = fields.Char(string='Nombre del sub grupo', required="True")
-    x_code = fields.Char(string='Código del sub grupo', required="True")
-    x_family = fields.Many2one(comodel_name='helpdesk_family', string='Family', required="True")
+    name = fields.Char(string='Nombre', required="True")
+    x_code = fields.Char(string='Código', required="True")
+    x_family = fields.Many2one(comodel_name='helpdesk_family', string='Familia')
 
     # Restricción a nivel de SQL
     _sql_constraints = [
