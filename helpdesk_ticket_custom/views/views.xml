@@ -100,7 +100,7 @@
 
     <!--                                                  VISTAS FOMULARIO                                       -->
     <!-- Se crea vista formulario de clasificación en ajustes de tickets -->
-    <record id="helpdesk_ticket_custom.project_form" model="ir.ui.view">
+    <record id="helpdesk_ticket_custom.classification_form" model="ir.ui.view">
       <field name="name">helpdesk_ticket_custom_classification.form</field>
       <field name="model">helpdesk_classification</field>
       <field name="arch" type="xml">
