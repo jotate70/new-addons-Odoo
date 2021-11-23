@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="website_time_off_menu" model="website.menu">
+        <field name="name">Ausencias</field>
+        <field name="url">time-off</field>
+        <field name="parent_id" ref="website.main_menu"/>
+        <field name="sequence" type="int">55</field>
+    </record>
+
+    <template id="create_website_time_off_form" name="Create_time_off">
+        <t t-call="website.layout">
+            <div id="wrap">
+                <div class="oe_structure">
+                    <div class="container">
+                        <h2 class="text-muted">
+                            Subir ausencia
+                        </h2>
+                        <form role="form" action="/create/time-off" method="POST">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"></input>
+
+                            <div data-visibility-condition="" data-visibility-between="" class="form-group" data-type="many2one" data-name="Field">
+                            <div class="row s_col_no_resize s_col_no_bgcolor">
+                              <label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="holiday_status_id">
+                                <span class="s_website_form_label_content">Tipo de ausencia</span>
+                              </label>
+                              <div class="col-sm">
+                                <select class="form-control" name="holiday_status_id" id="holiday_status_id" style="" required="">
+                                    <option value='1'>Ausencia pagada</option>
+                                    <option value='2'>Días compensatorios</option>
+                                    <option value='3'>Ausencias por enfermedad</option>
+                                    <option value='4'>No pagado</option>
+                                    <option value='5'>Permisos paternales</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+                          <div data-visibility-condition="" data-visibility-between="" class="form-group" data-type="many2one" data-name="Field">
+                            <div class="row s_col_no_resize s_col_no_bgcolor">
+                              <label class="col-form-label col-sm-auto s_website_form_label " style="width: 200px" for="name">
+                                <span class="s_website_form_label_content">Modo de asignación </span>
+                                <span class="s_website_form_mark"> *</span>
+                              </label>
+                              <div class="col-sm">
+                                <select class="form-control s_website_form_input" name="holiday_state" id="holiday_state" style="" required="">
+                                  <option value="employee" selected="selected">employee</option>
+                                  <option value="company">company</option>
+                                  <option value="department">department</option>
+                                  <option value="category">category</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+                          <div data-visibility-condition="" data-visibility-between="" class="form-group" data-type="date" data-name="Field">
+                            <div class="row s_col_no_resize s_col_no_bgcolor">
+                              <label class="col-form-label col-sm-auto s_website_form_label " style="width: 200px" for="date_from">
+                                <span class="s_website_form_label_content">Fecha de inicio de la solicitud</span>
+                              </label>
+                              <div class="col-sm">
+                                <div class="s_website_form_date input-group date" id="datepicker3622328991912296" data-target-input="nearest">
+                                  <input type="text" class="form-control datetimepicker-input s_website_form_input" data-target="#datepicker3622328991912296" name="request_date_from" placeholder="09-11-2021" id="date_from"/>
+                                  <div class="input-group-append" data-target="#datepicker3622328991912296" data-toggle="datetimepicker">
+                                    <div class="input-group-text">
+                                      <i class="fa fa-calendar"/>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div data-visibility-condition="" data-visibility-between="" class="form-group" data-type="date" data-name="Field">
+                            <div class="row s_col_no_resize s_col_no_bgcolor">
+                              <label class="col-form-label col-sm-auto s_website_form_label " style="width: 200px" for="request_date_to">
+                                <span class="s_website_form_label_content">Fecha de finalización de la solicitud</span>
+                              </label>
+                              <div class="col-sm">
+                                <div class="s_website_form_date input-group date" id="datepicker8297898973805464" data-target-input="nearest">
+                                  <input type="text" class="form-control datetimepicker-input s_website_form_input" data-target="#datepicker8297898973805464" name="request_date_to" placeholder="10-11-2021" id="request_date_to"/>
+                                  <div class="input-group-append" data-target="#datepicker8297898973805464" data-toggle="datetimepicker">
+                                    <div class="input-group-text">
+                                      <i class="fa fa-calendar"/>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                            <div data-visibility-condition="" data-visibility-between="" class="form-group" data-type="float" data-name="Field">
+                            <div class="row s_col_no_resize s_col_no_bgcolor">
+                              <label class="col-form-label col-sm-auto s_website_form_label " style="width: 200px" for="number_of_days">
+                                <span class="s_website_form_label_content">Duración (días)</span>
+                              </label>
+                              <div class="col-sm">
+                                <input type="number" class="form-control s_website_form_input" name="number_of_days" step="any" placeholder="" id="1"/>
+                              </div>
+                            </div>
+                          </div>
+                          <div data-visibility-condition="" data-visibility-between="" class="form-group" data-type="char" data-name="Field">
+                            <div class="row s_col_no_resize s_col_no_bgcolor">
+                              <label class="col-form-label col-sm-auto s_website_form_label " style="width: 200px" for="name">
+                                <span class="s_website_form_label_content">Description</span>
+                              </label>
+                              <div class="col-sm">
+                                <input type="text" class="form-control s_website_form_input" name="name" placeholder="" id="name"/>
+                              </div>
+                            </div>
+                          </div>
+                          <div data-visibility-condition="" data-visibility-between="" class="form-group" data-type="binary" data-name="Field">
+                            <div class="row s_col_no_resize s_col_no_bgcolor">
+                              <label class=" col-sm-auto s_website_form_label " style="width: 200px" for="supported_attachment_ids">
+                                <span class="s_website_form_label_content">Cargar archivo</span>
+                              </label>
+                              <div class="col-sm">
+                                <input type="file" class="form-control-file s_website_form_input" name="supported_attachment_ids" id="supported_attachment_ids"/>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div class="clearfix oe_login_buttons" data-name="Submit Button">
+                              <div style="width: 300px;" class="s_website_form_label"/>
+                                <button type="submit" class="btn btn-primary">Submit</button>
+                              <span id="s_website_form_result"/>
+                          </div>
+
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <record id="time_off_thanks" model="website.page">
+        <field name="name">Thanks</field>
+        <field name="type">qweb</field>
+        <field name="url">time-off-thanks</field>
+        <field name="website_published">True</field>
+        <field name="key">website_time_off_form.time-off-thanks</field>
+        <field name="arch" type="xml">
+            <t name="thanks" t-name="website_time_off_form.time-off-thanks">
+                <t t-call="website.layout">
+                    <div id="wrap">
+                        <div class="container">
+                            <h1>En hora buena!</h1>
+                            <div class="row">
+                                <div class="col-lg-8">
+                                    <div class="alert alert-success" role="status">
+                                        Su ausencia ha sido registrada con exito
+                                    </div>
+                                    <p>
+                                        Que tenga buen día!
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </field>
+    </record>
+
+</odoo>
