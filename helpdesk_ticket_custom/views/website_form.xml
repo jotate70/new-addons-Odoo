@@ -1,0 +1,16 @@
+<odoo>
+    <data>
+
+        <record id="website_helpdesk_ticket_submit_form_custom" model="ir.ui.view">
+            <field name="name">Helpdesk: Submit a Ticket Form custom</field>
+            <field name="inherit_id" ref="website_helpdesk_form.team_form_1"/>
+            <field name="arch" type="xml">
+                <xpath expr="//div[@class='form-group col-12 s_website_form_field s_website_form_dnone']" position="after">
+
+                    <p>DEMO FIELD</p>
+                </xpath>
+            </field>
+        </record>
+
+    </data>
+</odoo>

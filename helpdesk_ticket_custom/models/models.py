@@ -1,12 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api, exceptions
 
-# heredamos del modelo helpdesk team
-class helpdesk_team_inherit(models.Model):
-    _inherit = 'helpdesk.team'
-
-    x_visibility = fields.Boolean(string='Visibilidad de clasificación')
-
 # heredamos del modelo de tickets de mesa ayuda
 class helpdesk_ticket_extended(models.Model):
     _inherit = 'helpdesk.ticket'
@@ -22,11 +16,23 @@ class helpdesk_ticket_extended(models.Model):
     def _domain_ochange_x_familia(self):
         return{'domain': {'x_sub_group': [('x_family', "=", self.x_family.id)]}}
 
+# heredamos del modelo helpdesk team
+class helpdesk_team_inherit(models.Model):
+    _inherit = 'helpdesk.team'
+
+    x_visibility = fields.Boolean(string='Visibilidad de clasificación')
+
 # heredamos del modelo proyectos de mesa de ayuda al modelo usuarios
 class helpdesk_users(models.Model):
     _inherit = 'res.users'
 
     x_project = fields.Many2many(comodel_name='helpdesk_project', relation='helpdesk_project_relation', columnn1='id', columnn2='name', string='Proyecto')
+
+# Se hereda el campo de ticket en el modelo de tareas
+class project_task(models.Model):
+    _inherit = 'project.task'
+
+    helpdesk_ticket_id = fields.Many2one('helpdesk.ticket', string='Ticket', help='Ticket this task was generated from')
 
 # Se crea modelo clasificación
 class helpdesk_classification(models.Model):
