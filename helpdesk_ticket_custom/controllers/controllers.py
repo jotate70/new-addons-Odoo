@@ -2,7 +2,7 @@
 from odoo import http
 
 
-class Academy(http.Controller):
+class helpdesk_ticket_website_form(http.Controller):
 
     @http.route('/academy/<model("teachers"):teacher>/', auth='public', website=True)
     def teacher(self, teacher):
