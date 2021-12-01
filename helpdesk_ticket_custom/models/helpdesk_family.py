@@ -14,3 +14,4 @@ class helpdesk_family(models.Model):
     _sql_constraints = [
         ('name_unique', 'UNIQUE(name)', 'La familia ya existe'),
     ]
+

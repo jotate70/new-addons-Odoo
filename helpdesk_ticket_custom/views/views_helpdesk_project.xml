@@ -19,15 +19,18 @@
       <field name="name">helpdesk_ticket_custom_project.form</field>
       <field name="model">helpdesk_project</field>
       <field name="arch" type="xml">
-        <form string="form">classification
+        <form string="form">
           <sheet>
             <group name="group_top">
               <group name="group_left">
-                <field name="name"/>
+                  <field name="name"/>
               </group>
               <group name="group_right">
-                <field name="x_code"/>
+                  <field name="x_code"/>
               </group>
+            </group>
+            <group name="group_top">
+                  <field name="partner_id"/>
             </group>
           </sheet>
         </form>

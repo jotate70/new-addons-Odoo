@@ -7,4 +7,4 @@ from . import helpdesk_sub_group
 from . import helpdesk_task_extended
 from . import helpdesk_team_extended
 from . import helpdesk_ticket_extended
-from . import helpdesk_users_extended
+from . import helpdesk_partner_extended

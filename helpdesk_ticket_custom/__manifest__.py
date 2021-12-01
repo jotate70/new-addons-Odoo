@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 #
-# Julián Toscano
+# Autor: Julián Toscano
 # Desarrollador e implementador Odoo
 # Email: jotate70@gmail.com
-# Bogotá,Colombia
+# Github: jotate70
+# Cel. +57 3147754740
 #
 #
 {
@@ -18,7 +19,7 @@
         Module that extends functionality in the helpdesk module and add website form
     """,
 
-    'author': "Andirent, author: Julián Toscano",
+    'author': "Andirent  Athor: Julián Toscano",
     'website': "https://www.andirent.co",
 
     # Categories can be used to filter modules in modules listing
@@ -32,14 +33,14 @@
                 'base',
                 'helpdesk',
                 'industry_fsm',
+                'account_accountant',
                 'website_helpdesk_form',
-                'website',
+                'contacts',
                 ],
 
     # always loaded
     'data': [
         'security/ir.model.access.csv',
-        'data/helpdesk_teams.xml',
         'views/views_helpdesk_classification.xml',
         'views/views_helpdesk_family.xml',
         'views/views_helpdesk_project.xml',
@@ -47,7 +48,7 @@
         'views/views_helpdesk_task_extended.xml',
         'views/views_helpdesk_team_extended.xml',
         'views/views_helpdesk_ticket_extended.xml',
-        'views/views_helpdesk_users_extended.xml',
+        'views/views_helpdesk_partner_extended.xml',
     ],
 
     'installable': True,
