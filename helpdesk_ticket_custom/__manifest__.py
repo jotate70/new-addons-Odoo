@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 #
 # Autor: Julián Toscano
-# Desarrollador e implementador Odoo
 # Email: jotate70@gmail.com
 # Github: jotate70
 # Cel. +57 3147754740
