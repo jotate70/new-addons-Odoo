@@ -2,6 +2,7 @@
 #
 # Autor: Julián Toscano
 # Email: jotate70@gmail.com
+# Desarrollador y funcional
 # Github: jotate70
 # Cel. +57 3147754740
 #
@@ -11,11 +12,11 @@
 
     'summary': """
         This module creates new models and fields to extend the functionality of the helpdesk tickets,
-        and website form
+        and website tickets form
         """,
 
     'description': """
-        Module that extends functionality in the helpdesk module and add website form
+        Module that extends functionality in the helpdesk module and add website tickets form
     """,
 
     'author': "Andirent  Athor: Julián Toscano",
@@ -33,6 +34,7 @@
                 'helpdesk',
                 'industry_fsm',
                 'account_accountant',
+                'website',
                 'website_helpdesk_form',
                 'contacts',
                 ],
@@ -48,7 +50,16 @@
         'views/views_helpdesk_team_extended.xml',
         'views/views_helpdesk_ticket_extended.xml',
         'views/views_helpdesk_partner_extended.xml',
+        'views/helpdesk_templates.xml',
+        #'views/assets.xml',
     ],
+
+    'assets': {
+        'web.assets_frontend': [
+            'helpdesk_ticket_custom/static/src/js/script.js',
+            'helpdesk_ticket_custom/static/src/js/swal.min.js',
+        ]
+    },
 
     'installable': True,
 }
