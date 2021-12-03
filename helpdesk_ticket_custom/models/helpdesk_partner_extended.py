@@ -15,3 +15,5 @@ class helpdesk_partner_extended(models.Model):
 
 
 
+
+

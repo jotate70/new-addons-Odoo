@@ -2,6 +2,7 @@
 #
 # Autor: Julián Toscano
 # Email: jotate70@gmail.com
+# Desarrollador y funcional Odoo
 # Github: jotate70
 # Cel. +57 3147754740
 #
@@ -11,33 +12,30 @@
 
     'summary': """
         This module creates new models and fields to extend the functionality of the helpdesk tickets,
-        and website form
+        and website tickets form
         """,
 
     'description': """
-        Module that extends functionality in the helpdesk module and add website form
+        Module that extends functionality in the helpdesk module and add website tickets form
     """,
 
-    'author': "Andirent  Athor: Julián Toscano",
+    'author': "Andirent  Author: Julián Toscano",
     'website': "https://www.andirent.co",
 
     # Categories can be used to filter modules in modules listing
     # Check https://github.com/odoo/odoo/blob/14.0/odoo/addons/base/data/ir_module_category_data.xml
     # for the full list
     'category': 'helpdesk',
-    'version': '15.0.1',
+    'version': '15.1.1',
 
     # any module necessary for this one to work correctly
     'depends': [
                 'base',
                 'helpdesk',
                 'industry_fsm',
-                #'account_accountant',
-                'web',
                 'website',
-                'website_helpdesk',
                 'website_helpdesk_form',
-                #'contacts',
+                'contacts',
                 ],
 
     # always loaded
@@ -51,8 +49,9 @@
         'views/views_helpdesk_team_extended.xml',
         'views/views_helpdesk_ticket_extended.xml',
         'views/views_helpdesk_partner_extended.xml',
-        'views/helpdesk_templates_o.xml',
-        #'views/assets.xml',
+        'views/views_helpdesk_users_extended.xml',
+        'views/views_toggle_ticket_show.xml',
+        'views/helpdesk_templates.xml',
     ],
 
     'assets': {
