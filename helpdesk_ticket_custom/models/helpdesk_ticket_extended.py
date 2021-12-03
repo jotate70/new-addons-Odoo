@@ -7,9 +7,9 @@ class helpdesk_ticket_extended(models.Model):
 
     x_visibility_related = fields.Boolean(string='Campo oculto', related='team_id.x_visibility', store=True, readonly=True)
     x_classification = fields.Many2one(comodel_name='helpdesk_classification', string='clasificación')
-    x_project = fields.Many2one(comodel_name='helpdesk_project', string='Proyecto', required="True")
-    x_family = fields.Many2one(comodel_name='helpdesk_family', string='Familia', required="True")
-    x_sub_group = fields.Many2one(comodel_name='helpdesk_sub_group', string='Sub grupo', required="True")
+    x_project = fields.Many2one(comodel_name='helpdesk_project', string='Proyecto', )
+    x_family = fields.Many2one(comodel_name='helpdesk_family', string='Familia', )
+    x_sub_group = fields.Many2one(comodel_name='helpdesk_sub_group', string='Sub grupo', )
 
     # Se aplica un decorador que detecta el cambio del campo partner_id
     @api.onchange('partner_id')

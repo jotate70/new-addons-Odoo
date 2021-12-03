@@ -2,7 +2,6 @@
 #
 # Autor: Julián Toscano
 # Email: jotate70@gmail.com
-# Desarrollador y funcional Odoo
 # Github: jotate70
 # Cel. +57 3147754740
 #
@@ -12,31 +11,33 @@
 
     'summary': """
         This module creates new models and fields to extend the functionality of the helpdesk tickets,
-        and website tickets form
+        and website form
         """,
 
     'description': """
-        Module that extends functionality in the helpdesk module and add website tickets form
+        Module that extends functionality in the helpdesk module and add website form
     """,
 
-    'author': "Andirent  Author: Julián Toscano",
+    'author': "Andirent  Athor: Julián Toscano",
     'website': "https://www.andirent.co",
 
     # Categories can be used to filter modules in modules listing
     # Check https://github.com/odoo/odoo/blob/14.0/odoo/addons/base/data/ir_module_category_data.xml
     # for the full list
     'category': 'helpdesk',
-    'version': '15.1.1',
+    'version': '15.0.1',
 
     # any module necessary for this one to work correctly
     'depends': [
                 'base',
                 'helpdesk',
                 'industry_fsm',
-                'account_accountant',
+                #'account_accountant',
+                'web',
                 'website',
+                'website_helpdesk',
                 'website_helpdesk_form',
-                'contacts',
+                #'contacts',
                 ],
 
     # always loaded
@@ -50,17 +51,17 @@
         'views/views_helpdesk_team_extended.xml',
         'views/views_helpdesk_ticket_extended.xml',
         'views/views_helpdesk_partner_extended.xml',
-        'views/views_helpdesk_users_extended.xml',
-        'views/views_toggle_ticket_show.xml',
-        'views/helpdesk_templates.xml',
+        'views/helpdesk_templates_o.xml',
         #'views/assets.xml',
     ],
 
     'assets': {
         'web.assets_frontend': [
             'helpdesk_ticket_custom/static/src/js/script.js',
-            'helpdesk_ticket_custom/static/src/js/swal.min.js',
-        ]
+        ],
+        'website.assets_editor': [
+            'helpdesk_ticket_custom/static/src/js/website_helpdesk_form_editor.js',
+        ],
     },
 
     'installable': True,

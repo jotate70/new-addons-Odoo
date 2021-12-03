@@ -9,10 +9,11 @@
       <field name="arch" type="xml">
         <xpath expr="//page[@name='internal_notes']" position="after">
           <page string="Helpdesk">
-            <field name="x_project" options="{'no_create':true}"/>
+            <field name="x_project"/>
           </page>
         </xpath>
       </field>
     </record>
+
   </data>
 </odoo>
