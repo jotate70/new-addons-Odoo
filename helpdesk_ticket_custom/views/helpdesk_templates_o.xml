@@ -4,7 +4,7 @@
         <xpath expr="//div[hasclass('container')]" position="replace">
             <div class="container">
                 <h2 class="text-muted">
-                    Submit a Ticket
+                    Enviar un Ticket
                 </h2>
                 <span class="hidden" data-for="helpdesk_ticket_form" t-att-data-values="{'team_id': team and team.id or False,
                 'partner_name': default_values.get('name', ''), 'partner_email': default_values.get('email', ''), 'helpdesk_family': helpdesk_family or False}"/>
