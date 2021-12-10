@@ -6,7 +6,7 @@
         <xpath expr="//div[hasclass('container')]" position="replace">
             <div class="container">
                 <h2 class="text-muted">
-                    Submit a Ticket
+                    Enviar un Ticket
                 </h2>
                 <span class="hidden" data-for="helpdesk_ticket_form"
                       t-att-data-values="{'team_id': team and team.id or False,
@@ -53,7 +53,7 @@
                                     <div class="form-group col-12 s_website_form_field s_website_form_model_required" data-type="email" data-name="Field">
                                         <div class="row s_col_no_resize s_col_no_bgcolor">
                                             <label class="col-form-label col-auto s_website_form_label" style="width: 200px" for="helpdesk2">
-                                                <span class="s_website_form_label_content">Correo</span>
+                                                <span class="s_website_form_label_content">Correo Electrónico</span>
                                                 <span class="s_website_form_mark">*</span>
                                             </label>
                                             <div class="col-sm col-xs-12">
@@ -72,107 +72,106 @@
                                             </div>
                                         </div>
                                     </div>
-
                                     <div data-visibility-condition="" data-visibility-between="" class="form-group s_website_form_field col-12 s_website_form_required" data-type="many2many" data-name="Field">
                                         <div class="row s_col_no_resize s_col_no_bgcolor">
-                                          <label class=" col-sm-auto s_website_form_label " style="width: 200px" for="qbekd3hkwoe">
+                                          <label class=" col-sm-auto s_website_form_label " style="width: 200px" for="helpdesk_tag">
                                             <span class="s_website_form_label_content">Categorías</span>
-                                            <span class="s_website_form_mark"> *</span>
+                                            <span class="s_website_form_mark">*</span>
                                           </label>
                                           <div class="col-sm">
                                             <div class="row s_col_no_resize s_col_no_bgcolor s_website_form_multiple" data-name="tag_ids" data-display="horizontal">
                                               <div class="checkbox col-12 col-lg-4 col-md-6">
                                                 <div class="form-check">
-                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="qbekd3hkwoe0" name="tag_ids" value="1" required=""/>
-                                                  <label class="form-check-label s_website_form_check_label" for="qbekd3hkwoe0" style="font-weight: normal">
+                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="helpdesk_tag_1" name="tag_ids" value="1" required=""/>
+                                                  <label class="form-check-label s_website_form_check_label" for="helpdesk_tag_1" style="font-weight: normal">
                                             Configuración
                                         </label>
                                                 </div>
                                               </div>
                                               <div class="checkbox col-12 col-lg-4 col-md-6">
                                                 <div class="form-check">
-                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="qbekd3hkwoe1" name="tag_ids" value="2" required=""/>
-                                                  <label class="form-check-label s_website_form_check_label" for="qbekd3hkwoe1" style="font-weight: normal">
+                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="helpdesk_tag_2" name="tag_ids" value="2" required=""/>
+                                                  <label class="form-check-label s_website_form_check_label" for="helpdesk_tag_2" style="font-weight: normal">
                                             Devolución
                                         </label>
                                                 </div>
                                               </div>
                                               <div class="checkbox col-12 col-lg-4 col-md-6">
                                                 <div class="form-check">
-                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="qbekd3hkwoe2" name="tag_ids" value="3" required=""/>
-                                                  <label class="form-check-label s_website_form_check_label" for="qbekd3hkwoe2" style="font-weight: normal">
+                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="helpdesk_tag_3" name="tag_ids" value="3" required=""/>
+                                                  <label class="form-check-label s_website_form_check_label" for="helpdesk_tag_3" style="font-weight: normal">
                                             Diagnostico
                                         </label>
                                                 </div>
                                               </div>
                                               <div class="checkbox col-12 col-lg-4 col-md-6">
                                                 <div class="form-check">
-                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="qbekd3hkwoe3" name="tag_ids" value="4" required=""/>
-                                                  <label class="form-check-label s_website_form_check_label" for="qbekd3hkwoe3" style="font-weight: normal">
+                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="helpdesk_tag_4" name="tag_ids" value="4" required=""/>
+                                                  <label class="form-check-label s_website_form_check_label" for="helpdesk_tag_4" style="font-weight: normal">
                                             Entrega
                                         </label>
                                                 </div>
                                               </div>
                                               <div class="checkbox col-12 col-lg-4 col-md-6">
                                                 <div class="form-check">
-                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="qbekd3hkwoe4" name="tag_ids" value="5" required=""/>
-                                                  <label class="form-check-label s_website_form_check_label" for="qbekd3hkwoe4" style="font-weight: normal">
+                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="helpdesk_tag_5" name="tag_ids" value="5" required=""/>
+                                                  <label class="form-check-label s_website_form_check_label" for="helpdesk_tag_5" style="font-weight: normal">
                                             Falla
                                         </label>
                                                 </div>
                                               </div>
                                               <div class="checkbox col-12 col-lg-4 col-md-6">
                                                 <div class="form-check">
-                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="qbekd3hkwoe5" name="tag_ids" value="6" required=""/>
-                                                  <label class="form-check-label s_website_form_check_label" for="qbekd3hkwoe5" style="font-weight: normal">
+                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="helpdesk_tag_6" name="tag_ids" value="6" required=""/>
+                                                  <label class="form-check-label s_website_form_check_label" for="helpdesk_tag_6" style="font-weight: normal">
                                             Licenciamiento
                                         </label>
                                                 </div>
                                               </div>
                                               <div class="checkbox col-12 col-lg-4 col-md-6">
                                                 <div class="form-check">
-                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="qbekd3hkwoe6" name="tag_ids" value="7" required=""/>
-                                                  <label class="form-check-label s_website_form_check_label" for="qbekd3hkwoe6" style="font-weight: normal">
+                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="helpdesk_tag_7" name="tag_ids" value="7" required=""/>
+                                                  <label class="form-check-label s_website_form_check_label" for="helpdesk_tag_7" style="font-weight: normal">
                                             Mantenimiento Correctivo
                                         </label>
                                                 </div>
                                               </div>
                                               <div class="checkbox col-12 col-lg-4 col-md-6">
                                                 <div class="form-check">
-                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="qbekd3hkwoe7" name="tag_ids" value="8" required=""/>
-                                                  <label class="form-check-label s_website_form_check_label" for="qbekd3hkwoe7" style="font-weight: normal">
+                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="helpdesk_tag_8" name="tag_ids" value="8" required=""/>
+                                                  <label class="form-check-label s_website_form_check_label" for="helpdesk_tag_8" style="font-weight: normal">
                                             Mantenimiento Preventivo
                                         </label>
                                                 </div>
                                               </div>
                                               <div class="checkbox col-12 col-lg-4 col-md-6">
                                                 <div class="form-check">
-                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="qbekd3hkwoe8" name="tag_ids" value="9" required=""/>
-                                                  <label class="form-check-label s_website_form_check_label" for="qbekd3hkwoe8" style="font-weight: normal">
+                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="helpdesk_tag_9" name="tag_ids" value="9" required=""/>
+                                                  <label class="form-check-label s_website_form_check_label" for="helpdesk_tag_9" style="font-weight: normal">
                                             Nuevo Arriendo
                                         </label>
                                                 </div>
                                               </div>
                                               <div class="checkbox col-12 col-lg-4 col-md-6">
                                                 <div class="form-check">
-                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="qbekd3hkwoe9" name="tag_ids" value="10" required=""/>
-                                                  <label class="form-check-label s_website_form_check_label" for="qbekd3hkwoe9" style="font-weight: normal">
+                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="helpdesk_tag_10" name="tag_ids" value="10" required=""/>
+                                                  <label class="form-check-label s_website_form_check_label" for="helpdesk_tag_10" style="font-weight: normal">
                                             Recepción
                                         </label>
                                                 </div>
                                               </div>
                                               <div class="checkbox col-12 col-lg-4 col-md-6">
                                                 <div class="form-check">
-                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="qbekd3hkwoe10" name="tag_ids" value="11" required=""/>
-                                                  <label class="form-check-label s_website_form_check_label" for="qbekd3hkwoe10" style="font-weight: normal">
+                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="helpdesk_tag_11" name="tag_ids" value="11" required=""/>
+                                                  <label class="form-check-label s_website_form_check_label" for="helpdesk_tag_11" style="font-weight: normal">
                                             Revisión
                                         </label>
                                                 </div>
                                               </div>
                                               <div class="checkbox col-12 col-lg-4 col-md-6">
                                                 <div class="form-check">
-                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="qbekd3hkwoe11" name="tag_ids" value="12" required=""/>
-                                                  <label class="form-check-label s_website_form_check_label" for="qbekd3hkwoe11" style="font-weight: normal">
+                                                  <input type="checkbox" class="s_website_form_input form-check-input" id="helpdesk_tag_12" name="tag_ids" value="12" required=""/>
+                                                  <label class="form-check-label s_website_form_check_label" for="helpdesk_tag_12" style="font-weight: normal">
                                             Venta
                                         </label>
                                                 </div>
@@ -181,9 +180,6 @@
                                           </div>
                                         </div>
                                     </div>
-
-
-
                                     <div class="form-group col-12">
                                         <div class="row s_col_no_resize s_col_no_bgcolor">
                                             <label class="col-form-label col-sm-auto s_website_form_label " style="width: 200px" for="helpdesk_project">
@@ -238,6 +234,7 @@
                                         <div class="row s_col_no_resize s_col_no_bgcolor">
                                             <label class="col-form-label col-auto s_website_form_label" style="width: 200px" for="helpdesk4">
                                                 <span class="s_website_form_label_content">Descripción</span>
+                                                <span class="s_website_form_mark">*</span>
                                             </label>
                                             <div class="col-sm col-xs-12">
                                                 <textarea id="helpdesk4" class="form-control s_website_form_input" name="description"/>

@@ -26,14 +26,12 @@
     # Check https://github.com/odoo/odoo/blob/14.0/odoo/addons/base/data/ir_module_category_data.xml
     # for the full list
     'category': 'helpdesk',
-    'version': '15.1.1',
+    'version': '15.1.2',
 
     # any module necessary for this one to work correctly
     'depends': [
-                'base',
                 'helpdesk',
                 'industry_fsm',
-                'website',
                 'website_helpdesk_form',
                 'contacts',
                 ],
@@ -51,7 +49,8 @@
         'views/views_helpdesk_partner_extended.xml',
         'views/views_helpdesk_users_extended.xml',
         'views/views_toggle_ticket_show.xml',
-        'views/helpdesk_templates.xml',
+        'views/helpdesk_templates_o.xml',
+        #'views/assets.xml',
     ],
 
     'assets': {
