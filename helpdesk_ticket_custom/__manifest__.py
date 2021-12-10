@@ -30,11 +30,8 @@
 
     # any module necessary for this one to work correctly
     'depends': [
-                'base',
                 'helpdesk',
                 'industry_fsm',
-                'account_accountant',
-                'website',
                 'website_helpdesk_form',
                 'contacts',
                 ],
@@ -52,15 +49,17 @@
         'views/views_helpdesk_partner_extended.xml',
         'views/views_helpdesk_users_extended.xml',
         'views/views_toggle_ticket_show.xml',
-        'views/helpdesk_templates.xml',
+        'views/helpdesk_templates_o.xml',
         #'views/assets.xml',
     ],
 
     'assets': {
         'web.assets_frontend': [
             'helpdesk_ticket_custom/static/src/js/script.js',
-            'helpdesk_ticket_custom/static/src/js/swal.min.js',
-        ]
+        ],
+        'website.assets_editor': [
+            'helpdesk_ticket_custom/static/src/js/website_helpdesk_form_editor.js',
+        ],
     },
 
     'installable': True,

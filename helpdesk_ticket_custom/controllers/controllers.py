@@ -29,7 +29,8 @@ class WebsiteHelpdesk(main.WebsiteHelpdesk):
         # For breadcrumb index: get all team
         result['teams'] = teams
         if teams:
-            default_form = etree.fromstring(request.env.ref('helpdesk_ticket_custom.website_helpdesk_form_ticket_submit_form_inherit').arch)
+            #default_form = etree.fromstring(request.env.ref('helpdesk_ticket_custom.website_helpdesk_form_ticket_submit_form_inherit').arch)
+            default_form = etree.fromstring(request.env.ref('website_helpdesk_form.ticket_submit_form').arch)
             for t in teams:
                 xmlid = 'website_helpdesk_form.team_form_' + str(t.id)
                 ir = request.env['ir.ui.view'].sudo().search([('name', '=', xmlid)])
@@ -42,7 +43,10 @@ class WebsiteHelpdesk(main.WebsiteHelpdesk):
         #result['partner_name'] = partner_values.get('name')
         result['partner_id'] = partner_id
         result['helpdesk_family'] = helpdesk_family
-        result['projects'] = partner_id.x_project
+        if partner_id.x_project:
+            result['projects'] = partner_id.x_project
+        else:
+            result['projects'] = []
         return request.render("website_helpdesk.team", result)
 
     @http.route(['/familty/sub_grupo/<int:family_id>'], type='http', auth="public", methods=['GET'], website=True, csrf=False)
@@ -50,11 +54,9 @@ class WebsiteHelpdesk(main.WebsiteHelpdesk):
         ar = []
         if family_id:
             sub_groups = request.env['helpdesk_sub_group'].sudo().search([('x_family', '=', int(family_id))])
-
             for s in sub_groups:
                 ar.append({
                     'id': s.id,
                     'name': s.name
                 })
-
         return json.dumps(ar)

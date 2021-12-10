@@ -1,7 +1,7 @@
 <odoo>
   <data>
 
-    <!-- Se hereda el campo de proyectos en el modelo de usuarios  -->
+    <!-- Se anade un toggle de mostrar contactos en tickets -->
     <record id="toggle_ticket_show" model="ir.ui.view">
       <field name="name">toggle_ticket_show</field>
       <field name="model">res.partner</field>
