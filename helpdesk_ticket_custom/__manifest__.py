@@ -52,7 +52,7 @@
         'views/helpdesk_templates_o.xml',
         #'views/assets.xml',
     ],
-
+    'license': 'LGPL-3',
     'assets': {
         'web.assets_frontend': [
             'helpdesk_ticket_custom/static/src/js/script.js',
