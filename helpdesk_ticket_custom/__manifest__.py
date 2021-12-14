@@ -26,7 +26,7 @@
     # Check https://github.com/odoo/odoo/blob/14.0/odoo/addons/base/data/ir_module_category_data.xml
     # for the full list
     'category': 'helpdesk',
-    'version': '15.1.1',
+    'version': '15.1.2',
 
     # any module necessary for this one to work correctly
     'depends': [
@@ -52,7 +52,7 @@
         'views/helpdesk_templates_o.xml',
         #'views/assets.xml',
     ],
-
+    'license': 'LGPL-3',
     'assets': {
         'web.assets_frontend': [
             'helpdesk_ticket_custom/static/src/js/script.js',
