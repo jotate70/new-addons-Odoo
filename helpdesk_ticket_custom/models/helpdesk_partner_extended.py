@@ -12,7 +12,7 @@ class helpdesk_partner_extended(models.Model):
                                  string='Proyecto',
                                  )
 
-    @api.onchange('x_ticket_show', 'x_project')
+    @api.onchange('edit_records')
     def _domain_depends_x_project(self):
         return {'domain': {'x_project': [('partner_id', "in", self.parent_id.id)]}}
 

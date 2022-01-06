@@ -26,7 +26,7 @@
     # Check https://github.com/odoo/odoo/blob/14.0/odoo/addons/base/data/ir_module_category_data.xml
     # for the full list
     'category': 'helpdesk',
-    'version': '15.1.2',
+    'version': '2.0',
 
     # any module necessary for this one to work correctly
     'depends': [
@@ -50,6 +50,7 @@
         'views/views_helpdesk_users_extended.xml',
         'views/views_toggle_ticket_show.xml',
         'views/helpdesk_templates_o.xml',
+        'data/automation.xml',
         #'views/assets.xml',
     ],
     'license': 'LGPL-3',
