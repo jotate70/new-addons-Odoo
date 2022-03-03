@@ -1,0 +1,35 @@
+<odoo>
+  <data>
+    <!-- Se hereda el campo de proyectos en el modelo de usuarios  -->
+    <record id="purchase_extend_inherit_view" model="ir.ui.view">
+      <field name="name">purchase_extend_inherit_view</field>
+      <field name="model">purchase.order</field>
+      <field name="inherit_id" ref='purchase_requisition.purchase_order_form_inherit'/>
+      <field name="arch" type="xml">
+        <xpath expr="//field[@name='requisition_id']" position="after">
+          <field name="requisition_state"/>
+          <field name="related_requisition"/>
+          <field name="state_aprove"/>
+          <field name="aprove_manager"/>
+        </xpath>
+      </field>
+    </record>
+    <record id="purchase_extend_view" model="ir.ui.view">
+      <field name="name">purchase_extend_view</field>
+      <field name="model">purchase.order</field>
+      <field name="inherit_id" ref='purchase.purchase_order_form'/>
+      <field name="arch" type="xml">
+        <xpath expr="//button[@id='bid_confirm']" position="replace" >
+          <button name="button_confirm_extend" type="object" states="sent" string="Confirmar Orden" class="oe_highlight"
+                  id="bid_confirm" data-hotkey="v"/>
+        </xpath>
+        <xpath expr="//button[@id='draft_confirm']" position="replace" >
+          <button name="button_confirm_extend" type="object" states="draft" string="Confirmar Orden" id="draft_confirm"/>
+        </xpath>
+        <xpath expr="//button[@name='button_approve']" position="replace" >
+          <button name="action_approve_extend" type="object" states='to approve' string="Aprobar Orden" class="oe_highlight" data-hotkey="z" user="6"/>
+        </xpath>
+      </field>
+    </record>
+  </data>
+</odoo>
