@@ -10,18 +10,20 @@ class purchase_requisition_extend(models.Model):
     manager_id = fields.Many2one(comodel_name='hr.employee', related='user_id.employee_id.parent_id', string='Jefe inmediato',
                              help='Jefe inmediato respondable de su aprobación')
     available = fields.Boolean(string='habilitado', compute='_domain_ochange_x_partner')
-
     activity_id = fields.Integer(string='id actividad')
 
     @api.model
     def _domain_ochange_x_partner(self):
-        if self.state != 'cancel':
+        if self.state == 'ongoing' or self.state == 'open':
             self.write({'available': True})
         else:
             self.write({'available': False})
 
     # función botón cancelar
     def action_cancel_extend(self):
+        #  Marca actividad como hecha de forma automatica
+        new_activity = self.env['mail.activity'].search([('id', '=', self.activity_id)], limit=1)
+        new_activity.action_feedback(feedback='Es rechazado')
         # try to set all associated quotations to cancel state
         if self.manager_id.user_id == self.env.user:
             for requisition in self:
@@ -56,7 +58,7 @@ class purchase_requisition_extend(models.Model):
             model_id = self.env['ir.model']._get(self._name).id
             create_vals = {
                 'activity_type_id': 4,
-                'summary': 'Aprobación de acuerdo de compra',
+                'summary': 'Acuerdo de compra:',
                 'automated': True,
                 'note': 'A sido asignado para aprovar el siguiente acuerdo de compra',
                 'date_deadline': self.date_end.date(),
@@ -65,14 +67,8 @@ class purchase_requisition_extend(models.Model):
                 'user_id': self.manager_id.user_id.id
             }
             new_activity = self.env['mail.activity'].create(create_vals)
+            # Escribe el id de la actividad en un campo
             self.write({'activity_id': new_activity})
-
-        # Set the sequence number regarding the requisition type
-        if self.name == 'New':
-            if self.is_quantity_copy != 'none':
-                self.name = self.env['ir.sequence'].next_by_code('purchase.requisition.purchase.tender')
-            else:
-                self.name = self.env['ir.sequence'].next_by_code('purchase.requisition.blanket.order')
 
     # Función del boton aprovación
     def action_approve(self):
@@ -81,7 +77,7 @@ class purchase_requisition_extend(models.Model):
             self.write({'state': 'open'})
             #  Marca actividad como hecha de forma automatica
             new_activity = self.env['mail.activity'].search([('id', '=', self.activity_id)], limit=1)
-            new_activity.action_feedback()
+            new_activity.action_feedback(feedback='Es aprobado')
         else:
             raise UserError(_('No cuenta con el permiso para aprobar acuerdos de compra, por favor comunicarse con su jefe inmediato para aprobar este acuerdo de compra.'))
 

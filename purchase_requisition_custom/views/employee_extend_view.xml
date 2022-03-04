@@ -13,8 +13,8 @@
           <page string="Presupuesto" attrs="{'invisible': [['active_budget', '!=', True]]}">
             <group>
               <group string="Presupuesto asignado">
-                <field name="budget"/>
                 <field name="general_manager"/>
+                <field name="budget" attrs="{'invisible': [('general_manager', '=', True)]}"/>
               </group>
             </group>
           </page>

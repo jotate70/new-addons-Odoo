@@ -1,6 +1,6 @@
 <odoo>
   <data>
-    <!-- Se hereda el campo de proyectos en el modelo de usuarios  -->
+
     <record id="purchase_extend_inherit_view" model="ir.ui.view">
       <field name="name">purchase_extend_inherit_view</field>
       <field name="model">purchase.order</field>
@@ -8,12 +8,15 @@
       <field name="arch" type="xml">
         <xpath expr="//field[@name='requisition_id']" position="after">
           <field name="requisition_state"/>
-          <field name="related_requisition"/>
-          <field name="state_aprove"/>
+          <field name="related_requisition" invisible="1"/>
+          <field name="state_aprove" invisible="1"/>
+          <field name="manager_before"/>
           <field name="aprove_manager"/>
+          <field name="activity_id" invisible="1"/>
         </xpath>
       </field>
     </record>
+
     <record id="purchase_extend_view" model="ir.ui.view">
       <field name="name">purchase_extend_view</field>
       <field name="model">purchase.order</field>
@@ -27,9 +30,28 @@
           <button name="button_confirm_extend" type="object" states="draft" string="Confirmar Orden" id="draft_confirm"/>
         </xpath>
         <xpath expr="//button[@name='button_approve']" position="replace" >
-          <button name="action_approve_extend" type="object" states='to approve' string="Aprobar Orden" class="oe_highlight" data-hotkey="z" user="6"/>
+          <button name="action_approve_extend" type="object" string="Aprobar Orden"
+                  class="oe_highlight" data-hotkey="z" attrs="{'invisible': ['|', ['state_aprove', '!=', 1], ['state', '!=', 'to approve']]}"/>
+          <button name="action_approve_extend" type="object" string="Aprobar Orden ⁽2⁾"
+                  class="oe_highlight" data-hotkey="z" attrs="{'invisible': ['|', ['state_aprove', '!=', 2], ['state', '!=', 'to approve']]}"/>
+          <button name="action_approve_extend" type="object" string="Aprobar Orden ⁽3⁾"
+                  class="oe_highlight" data-hotkey="z" attrs="{'invisible': ['|', ['state_aprove', '!=', 3], ['state', '!=', 'to approve']]}"/>
+          <button name="action_approve_extend" type="object" string="Aprobar Orden ⁽4⁾"
+                  class="oe_highlight" data-hotkey="z" attrs="{'invisible': ['|', ['state_aprove', '!=', 4], ['state', '!=', 'to approve']]}"/>
+          <button name="action_approve_extend" type="object" string="Aprobar Orden ⁽estra⁾"
+                  class="oe_highlight" data-hotkey="z" attrs="{'invisible': ['|', ['state_aprove', '!=', 5], ['state', '!=', 'to approve']]}"/>
+        </xpath>
+        <xpath expr="//button[@name='button_draft']" position="replace" >
+          <button name="button_draft_extend" states="cancel" string="Cambiar a borrador" type="object" data-hotkey="o"/>
+        </xpath>
+        <xpath expr="//button[@name='button_cancel']" position="before" >
+          <button name="button_cancel_extend" states="to approve,sent" string="Rechazar" type="object" data-hotkey="x" />
+        </xpath>
+        <xpath expr="//button[@name='button_cancel']" position="replace" >
+          <button name="button_cancel" states="draft,sent,purchase" string="Cancelar" type="object" data-hotkey="x" />
         </xpath>
       </field>
     </record>
+
   </data>
 </odoo>
