@@ -1,0 +1,30 @@
+<odoo>
+  <data>
+    <!-- Se hereda el campo de proyectos en el modelo de usuarios  -->
+    <record id="purchase_requisition_extend_view" model="ir.ui.view">
+      <field name="name">purchase_requisition_extend_view</field>
+      <field name="model">purchase.requisition</field>
+      <field name="inherit_id" ref='purchase_requisition.view_purchase_requisition_form'/>
+      <field name="arch" type="xml">
+        <xpath expr="//button[@name='action_in_progress']" position="replace">
+          <button name="action_in_progress_extend" states="draft" string="Confirmar" type="object" class="btn-primary"/>
+        </xpath>
+        <xpath expr="//button[@name='action_open']" position="replace">
+          <button name="action_approve" states="in_progress" string="Aprobar" type="object" class="btn-primary"/>
+        </xpath>
+        <xpath expr="//button[@name='action_cancel']" position="replace">
+          <button name="action_cancel_extend" states="in_progress" string="Rechazar" type="object"/>
+          <button name="action_cancel" states="draft,ongoing,open" string="Cancelar" type="object"/>
+        </xpath>
+        <xpath expr="//field[@name='user_id']" position="after">
+          <field name="manager_id"/>
+          <field name="available" invisible="1"/>
+          <field name="activity_id" invisible="1"/>
+        </xpath>
+        <xpath expr="//field[@name='date_end']" position="attributes">
+          <attribute name="required">1</attribute>
+        </xpath>
+      </field>
+    </record>
+  </data>
+</odoo>
