@@ -69,6 +69,12 @@ class purchase_requisition_extend(models.Model):
             new_activity = self.env['mail.activity'].create(create_vals)
             # Escribe el id de la actividad en un campo
             self.write({'activity_id': new_activity})
+        # Set the sequence number regarding the requisition type / Agrega la secuencia de acuerdo de compra
+        if self.name == 'New':
+            if self.is_quantity_copy != 'none':
+                self.name = self.env['ir.sequence'].next_by_code('purchase.requisition.purchase.tender')
+            else:
+                self.name = self.env['ir.sequence'].next_by_code('purchase.requisition.blanket.order')
 
     # Función del boton aprovación
     def action_approve(self):

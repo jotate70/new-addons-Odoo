@@ -22,6 +22,9 @@
         <xpath expr="//field[@name='user_id']" position="attributes">
           <attribute name="required">1</attribute>
         </xpath>
+        <xpath expr="//field[@name='parent_id']" position="attributes">
+          <attribute name="attrs">{"required": [["general_manager","!=",True]]}</attribute>
+        </xpath>
       </field>
     </record>
   </data>
