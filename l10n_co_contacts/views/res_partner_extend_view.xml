@@ -1,0 +1,64 @@
+<odoo>
+  <data>
+    <!-- Se hereda formulario contactos  -->
+    <record id="res_partner_extended" model="ir.ui.view">
+        <field name="name">res_partner_extend</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <!--            campos -->
+            <xpath expr="//form[1]/sheet[1]/group[1]" position="after">
+                <group>
+                    <group string="Campos Sagrilaft">
+                        <field name="share_percentage" attrs="{'invisible': [('company_type', '=', 'company')]}"/>
+                        <field name="tax_auditor" attrs="{'invisible': [('company_type', '=', 'person')], 'required': [('company_type', '=', 'company')]}"/>
+                        <field name="auditor_document" attrs="{'invisible': [('company_type', '=', 'person')]}"/>
+                        <field name="accountant" attrs="{'invisible': [('company_type', '=', 'person')], 'required': [('company_type', '=', 'company')]}"/>
+                        <field name="accountant_document" attrs="{'invisible': [('company_type', '=', 'person')]}"/>
+<!--                        <field name="a"/>-->
+                    </group>
+                </group>
+            </xpath>
+            <!--            Vista Sagrilaft individual -->
+            <field name="share_percentage" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </field>
+            <field name="share_percentage" position="after">
+                <label for="shareholding_structure" string="Composición Accionaria" attrs="{'invisible': [('company_type','=', 'company')]}"/>
+                <div>
+                    <field name="shareholding_structure" attrs="{'invisible': [('company_type','=', 'company')]}" class="oe_inline"/>
+                    <span class="oe_read_only" attrs="{'invisible': ['|', ('company_type','=', 'company'), ('shareholding_structure','=', '2')]}"> - </span>
+                    <field name="share_percentage" placeholder="Number" class="oe_inline" attrs="{'invisible': ['|', ('company_type','=', 'company'), ('shareholding_structure','=', '2')]}"/>
+                    <span class="oe_read_only" attrs="{'invisible': ['|', ('company_type','=', 'company'), ('shareholding_structure','=', '2')]}">%</span>
+                </div>
+            </field>
+            <!--            Vista Sagrilaft compañia Auditor -->
+            <field name="auditor_document" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </field>
+            <field name="auditor_document" position="after">
+                <label for="auditor_document_type" string="Número de Identificación" attrs="{'invisible': [('company_type','=', 'person')]}"/>
+                <div>
+                    <field name="auditor_document_type" attrs="{'invisible': [('company_type','=', 'person')]}" class="oe_inline"
+                           options="{'no_open':true}"/>
+                    <span class="oe_read_only" attrs="{'invisible': [('company_type','=', 'person')]}"> - </span>
+                    <field name="auditor_document" placeholder="Number" class="oe_inline" attrs="{'invisible': [('company_type','=', 'person')]}"/>
+                </div>
+            </field>
+            <!--            Vista Sagrilaft compañia contador -->
+            <field name="accountant_document" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </field>
+            <field name="accountant_document" position="after">
+                <label for="accountant_document_type" string="Número de Identificación" attrs="{'invisible': [('company_type','=', 'person')]}"/>
+                <div>
+                    <field name="accountant_document_type" attrs="{'invisible': [('company_type','=', 'person')]}" class="oe_inline"
+                           options="{'no_open':true}"/>
+                    <span class="oe_read_only" attrs="{'invisible': [('company_type','=', 'person')]}"> - </span>
+                    <field name="accountant_document" placeholder="Number" class="oe_inline" attrs="{'invisible': [('company_type','=', 'person')]}"/>
+                </div>
+            </field>
+        </field>
+    </record>
+  </data>
+</odoo>
