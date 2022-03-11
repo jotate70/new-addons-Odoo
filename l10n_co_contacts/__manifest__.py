@@ -15,6 +15,8 @@
 
     'description': """
         Add options and required fields for Colombian localization
+        
+        NOTE: sagrilaft settings are made on the sarlaft page in the contacts module
     """,
 
     'author': "Andirent  Author: Julián Toscano",
@@ -24,7 +26,7 @@
     'version': '0.1',
 
     # any module necessary for this one to work correctly
-    'depends': [
+                    'depends': [
         'contacts',
         'l10n_co',
     ],
