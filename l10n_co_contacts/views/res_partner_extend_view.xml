@@ -1,8 +1,8 @@
 <odoo>
   <data>
     <!-- Se hereda formulario contactos  -->
-    <record id="res_partner_extended" model="ir.ui.view">
-        <field name="name">res_partner_extend</field>
+    <record id="l10n_co_res_partner_sagrilaft" model="ir.ui.view">
+        <field name="name">l10n_co_res_partner_sagrilaft</field>
         <field name="model">res.partner</field>
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="arch" type="xml">
@@ -15,7 +15,13 @@
                         <field name="auditor_document" attrs="{'invisible': [('company_type', '=', 'person')]}"/>
                         <field name="accountant" attrs="{'invisible': [('company_type', '=', 'person')], 'required': [('company_type', '=', 'company')]}"/>
                         <field name="accountant_document" attrs="{'invisible': [('company_type', '=', 'person')]}"/>
-<!--                        <field name="a"/>-->
+                    </group>
+                    <group string="Campos ocultos de ajustes" invisible="1">
+                        <field name="check_vat" invisible="1"/>
+                        <field name="check_phone" invisible="1"/>
+                        <field name="check_mobile" invisible="1"/>
+                        <field name="check_email" invisible="1"/>
+                        <field name="check_website" invisible="1"/>
                     </group>
                 </group>
             </xpath>
@@ -56,6 +62,30 @@
                            options="{'no_open':true}"/>
                     <span class="oe_read_only" attrs="{'invisible': [('company_type','=', 'person')]}"> - </span>
                     <field name="accountant_document" placeholder="Number" class="oe_inline" attrs="{'invisible': [('company_type','=', 'person')]}"/>
+                </div>
+            </field>
+            <!--            campos de ajueste Sagrilaft -->
+            <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='accounting']" position="after">
+                <page name='sagrilaft' string="Sagrilaft" attrs="{'invisible': [('company_type', '=', 'company')]}">
+                    <group string="Ajustes Sagrilaft">
+                        <field name="responsible_tax_auditor"/>
+                        <field name="responsible_accountant"/>
+                        <field name="dc"/>
+                    </group>
+                </page>
+            </xpath>
+            <!--            Vista dumento -->
+            <field name="dc" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </field>
+            <field name="dc" position="after">
+                <label for="dc_type" string="Número de Identificación" attrs="{'invisible': [('responsible_tax_auditor', '=', False), ('responsible_accountant', '=', False)]}"/>
+                <div>
+                    <field name="dc_type" class="oe_inline"
+                           attrs="{'invisible': [('responsible_tax_auditor', '=', False), ('responsible_accountant', '=', False)], 'required': ['|', ('responsible_accountant', '=', True), ('responsible_tax_auditor', '=', True)]}"/>
+                    <span class="oe_read_only" attrs="{'invisible': [('responsible_tax_auditor', '=', False), ('responsible_accountant', '=', False)]}"> - </span>
+                    <field name="dc" placeholder="Number" class="oe_inline"
+                           attrs="{'invisible': [('responsible_tax_auditor', '=', False), ('responsible_accountant', '=', False)], 'required': ['|', ('responsible_accountant', '=', True), ('responsible_tax_auditor', '=', True)]}"/>
                 </div>
             </field>
         </field>

@@ -11,10 +11,14 @@
     'name': "contacts extend",
 
     'summary': """
-        15.0.1 fields required by Sagrilaft are added""",
+        15.0.1 fields required by Sagrilaft are added.
+        15.1.0 constrainst on contact field
+        """,
 
     'description': """
         Add options and required fields for Colombian localization
+        
+        NOTE: sagrilaft settings are made on the sarlaft page in the contacts module
     """,
 
     'author': "Andirent  Author: Julián Toscano",
@@ -31,7 +35,9 @@
 
     # always loaded
     'data': [
+        # 'security/ir.model.access.csv',
         'views/res_partner_extend_view.xml',
+        'views/res_partner_settings_view.xml',
     ],
 
     'installable': True,
