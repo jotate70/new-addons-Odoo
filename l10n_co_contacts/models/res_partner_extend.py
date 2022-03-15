@@ -74,9 +74,26 @@ class l10n_co_contacts(models.Model):
     def _constraint_vat(self):
         partners = self.search([('vat', '=', self.vat)])
         longitud = len(partners)
+        if self.vat == False:
+            longitud = 0
         if self.is_company == True:
             if longitud > 1 and self.check_vat == True:
                 raise exceptions.ValidationError('El número de identificación ya existe')
+        else:
+            if self.commercial_partner_id != self.parent_id:
+                if longitud > 1 and self.check_vat == True:
+                    raise exceptions.ValidationError('El número de identificación ya existe')
+
+    # Borrar campos de contacto cuando se deseleciona una compañia en un individual
+    @api.onchange('parent_id')
+    def _clean_contact_parent(self):
+        if self.is_company == False:
+            self.write({'street': False})
+            self.write({'street2': False})
+            self.write({'city': False})
+            self.write({'state_id': False})
+            self.write({'zip': False})
+            self.write({'vat': False})
 
     # No duplicar teléfono
     @api.constrains('phone')

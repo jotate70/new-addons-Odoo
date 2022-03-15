@@ -7,23 +7,28 @@
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="arch" type="xml">
             <!--            campos -->
-            <xpath expr="//form[1]/sheet[1]/group[1]" position="after">
-                <group>
-                    <group string="Campos Sagrilaft">
-                        <field name="share_percentage" attrs="{'invisible': [('company_type', '=', 'company')]}"/>
-                        <field name="tax_auditor" attrs="{'invisible': [('company_type', '=', 'person')], 'required': [('company_type', '=', 'company')]}"/>
-                        <field name="auditor_document" attrs="{'invisible': [('company_type', '=', 'person')]}"/>
-                        <field name="accountant" attrs="{'invisible': [('company_type', '=', 'person')], 'required': [('company_type', '=', 'company')]}"/>
-                        <field name="accountant_document" attrs="{'invisible': [('company_type', '=', 'person')]}"/>
+             <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='accounting']" position="after">
+                 <page name='sagrilaft' string="Sagrilaft">
+                    <group>
+                        <group string="Campos Sagrilaft">
+                            <field name="share_percentage" attrs="{'invisible': [('company_type', '=', 'company')]}"/>
+                            <field name="tax_auditor" attrs="{'invisible': [('company_type', '=', 'person')]}"/>
+                            <field name="auditor_document" attrs="{'invisible': [('company_type', '=', 'person')]}"/>
+                            <field name="accountant" attrs="{'invisible': [('company_type', '=', 'person')]}"/>
+                            <field name="accountant_document" attrs="{'invisible': [('company_type', '=', 'person')]}"/>
+                        </group>
+                        <group string="Ajustes Sagrilaft" attrs="{'invisible': [('company_type', '=', 'company')]}">
+                            <field name="responsible_tax_auditor"/>
+                            <field name="responsible_accountant"/>
+                            <field name="dc"/>
+                            <field name="check_vat" invisible="1"/>
+                            <field name="check_phone" invisible="1"/>
+                            <field name="check_mobile" invisible="1"/>
+                            <field name="check_email" invisible="1"/>
+                            <field name="check_website" invisible="1"/>
+                        </group>
                     </group>
-                    <group string="Campos ocultos de ajustes" invisible="1">
-                        <field name="check_vat" invisible="1"/>
-                        <field name="check_phone" invisible="1"/>
-                        <field name="check_mobile" invisible="1"/>
-                        <field name="check_email" invisible="1"/>
-                        <field name="check_website" invisible="1"/>
-                    </group>
-                </group>
+                 </page>
             </xpath>
             <!--            Vista Sagrilaft individual -->
             <field name="share_percentage" position="attributes">
@@ -65,16 +70,6 @@
                 </div>
             </field>
             <!--            campos de ajueste Sagrilaft -->
-            <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='accounting']" position="after">
-                <page name='sagrilaft' string="Sagrilaft" attrs="{'invisible': [('company_type', '=', 'company')]}">
-                    <group string="Ajustes Sagrilaft">
-                        <field name="responsible_tax_auditor"/>
-                        <field name="responsible_accountant"/>
-                        <field name="dc"/>
-                    </group>
-                </page>
-            </xpath>
-            <!--            Vista dumento -->
             <field name="dc" position="attributes">
                 <attribute name="invisible">1</attribute>
             </field>
