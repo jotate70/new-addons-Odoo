@@ -11,7 +11,9 @@
     'name': "contacts extend",
 
     'summary': """
-        15.0.1 fields required by Sagrilaft are added""",
+        15.0.1 fields required by Sagrilaft are added.
+        15.1.0 constrainst on contact field
+        """,
 
     'description': """
         Add options and required fields for Colombian localization
@@ -26,14 +28,16 @@
     'version': '0.1',
 
     # any module necessary for this one to work correctly
-                    'depends': [
+    'depends': [
         'contacts',
         'l10n_co',
     ],
 
     # always loaded
     'data': [
+        # 'security/ir.model.access.csv',
         'views/res_partner_extend_view.xml',
+        'views/res_partner_settings_view.xml',
     ],
 
     'installable': True,
