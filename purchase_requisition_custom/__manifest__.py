@@ -1,4 +1,12 @@
 # -*- coding: utf-8 -*-
+#
+# Autor: Julián Toscano
+# Email: jotate70@gmail.com
+# Desarrollador y funcional Odoo
+# Github: jotate70
+# Cel. +57 3147754740
+#
+#
 {
     'name': "Purchase Agreements Custom",
 
@@ -21,7 +29,8 @@
 
     # any module necessary for this one to work correctly
     'depends': ['purchase_requisition',
-                'hr',
+                'hr_holidays',
+                'stock',
                 ],
 
     # always loaded
@@ -30,7 +39,9 @@
         'views/employee_extend_view.xml',
         'views/purchase_extend_view.xml',
         'views/purchase_requisition_extend_view.xml',
+        'views/purchase_requisition_line_extend_view.xml',
         'views/users_extend_view.xml',
+        'views/stock_picking_extend_view.xml'
         # 'data/plan_activity.xml'
     ],
 

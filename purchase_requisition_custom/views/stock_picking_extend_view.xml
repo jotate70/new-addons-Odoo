@@ -1,0 +1,15 @@
+<odoo>
+  <data>
+    <!-- Se hereda el campo de proyectos en el modelo de usuarios  -->
+    <record id="stock_picking_extended_view" model="ir.ui.view">
+      <field name="name">stock_picking_extended_view</field>
+      <field name="model">stock.picking</field>
+      <field name="inherit_id" ref="stock.view_picking_form"/>
+      <field name="arch" type="xml">
+        <xpath expr="//field[@name='backorder_id']" position="after">
+          <field name="requisition_id"/>
+        </xpath>
+      </field>
+    </record>
+  </data>
+</odoo>
