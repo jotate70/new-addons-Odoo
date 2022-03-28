@@ -1,6 +1,5 @@
 <odoo>
   <data>
-    <!-- Se hereda el campo de proyectos en el modelo de usuarios  -->
     <record id="users_extended_view" model="ir.ui.view">
       <field name="name">users_extended_view</field>
       <field name="model">res.users</field>

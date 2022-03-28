@@ -2,7 +2,6 @@
 
 from odoo import models, fields, api
 
-
 class employee_extend(models.Model):
     _inherit = 'hr.employee'
 
