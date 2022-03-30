@@ -30,6 +30,7 @@
     # any module necessary for this one to work correctly
     'depends': ['purchase_requisition',
                 'hr_holidays',
+                'purchase_stock',
                 'stock',
                 ],
 

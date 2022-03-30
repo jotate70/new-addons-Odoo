@@ -17,34 +17,38 @@ class purchase_requisition_extend(models.Model):
                                    default=lambda self: fields.datetime.now())
     time_off = fields.Char(string='Disponibilidad', compute='_compute_number_of_days')
     time_off_related = fields.Boolean(string='Ausencia', related='manager_id.is_absent')
-    stock_picking_ids = fields.One2many('stock.picking', 'requisition_id', string='Purchase Orders',
-                                   states={'done': [('readonly', True)]})
+    purchase_ids2 = fields.One2many(comodel_name='stock.picking', inverse_name='requisition_id',
+                                    string='Purchase Orders',
+                                    states={'done': [('readonly', True)]})
     stock_picking_count = fields.Integer(compute='_compute_stock_picking_number', string='Numero de transferencias')
     show_picking = fields.Boolean(string='Picking',
                                   help='Mostrar/ocultar el campo cantidad de producto en stock')
     stock_picking_action = fields.Boolean(string='Tranferencia inmediata')
-    example = fields.Many2one(comodel_name='stock.location', string='example')
     c = fields.Integer(string='c')
     cc = fields.Integer(string='cc')
-    repeated = fields.Integer(string='b')
-    e = fields.Integer(string='e')
-    repeated_id = fields.Char(string='Ubicaciones repetidas')
+    No_rep = fields.Integer(string='b')
+    array_rep = fields.Char(string='Ubicaciones repetidas')
     len_id = fields.Integer(string='longitud')
-    example3 = fields.Char(string='example3')
+
+    def demo(self):
+        if self.stock_picking_action == True:
+            self.stock_picking_action = False
+        else:
+            self.stock_picking_action = True
+
+    def action_button(self):
+        if self.stock_picking_action == True:
+            self.stock_picking_action = False
+        else:
+            self.stock_picking_action = True
 
     # Función que genera las tranferencias dependiedo las ubicaciones a mover
     @api.onchange('stock_picking_action')
-    def _stock_picking_action_action(self):
+    def stock_picking_action_action(self):
         if self.line_ids:
             self.c = 0      # Reinicio de contador array 1
-            self.repeated = 0      # Reinicio, cuenta la cantidad de ubicaciones repetidas
-            self.e = 0      # Reinicio, cuenta las tranferencias inmeditas cuando hay ubicaciones a mover repetidas
+            self.No_rep = 0      # Reinicio, cuenta la cantidad de ubicaciones repetidas
             location_dest = []  # Guarda id de las ubicaciones repetidas
-            location = []
-            picking_type = []
-            h = []
-            p = []
-            j = [0, 0]
             for rec in self.line_ids:
                 self.cc = 0     # Reinicio de contador array 2
                 self.c = self.c + 1     # Contador de aray 1
@@ -52,28 +56,32 @@ class purchase_requisition_extend(models.Model):
                     self.cc = self.cc + 1   # Contador de aray 2
                     # optener lineas con ubicaciones repetidas
                     if rec.default_location_dest_id.id == rec2.default_location_dest_id.id and self.c != self.cc:     # posiciones con el mismo valor y valores de contador diferentes
-                        self.repeated = self.repeated + 1     # No repetidos entre array
+                        self.No_rep = self.No_rep + 1     # No repetidos entre array
+                        # location_dest.append(rec2.default_location_dest_id.id)
                         location_dest.append(rec2.default_location_dest_id.id)
-                        self.repeated_id = list(set(location_dest))  # set solo deja un solo valor de los repetidos
+                        self.array_rep = list(set(location_dest))  # set solo deja un solo valor de los repetidos
                         self.len_id = len(list(set(location_dest)))        # len muestra el tamaño de la lista
 
                     # optener lineas con ubicaciones no repetidas
                     elif rec.default_location_dest_id.id == rec2.default_location_dest_id.id and self.c == self.cc:     # posiciones con el mismo valor y valores de contador diferentes
-                        self.repeated = self.repeated + 1     # No repetidos entre array
+                        self.No_rep = self.No_rep + 1     # No repetidos entre array
                         location_dest.append(rec2.default_location_dest_id.id)
-                        self.repeated_id = list(set(location_dest))  # set solo deja un solo valor de los repetidos
+                        self.array_rep = list(set(location_dest))  # set solo deja un solo valor de los repetidos
                         self.len_id = len(list(set(location_dest)))        # len muestra el tamaño de la lista
 
-            count_stock = 0
+
+            count_stock1 = 0
             count1 = []
             count2 = []
             for count1 in self.line_ids:
                 count_stock2 = 0
-                count_stock1 = count_stock + 1  # para usar en condición de cantidades de tranferencia inmediata
+                count_stock1 = count_stock1 + 1  # para usar en condición de cantidades de tranferencia inmediata
                 for count2 in self.line_ids:
-                    count_stock2 = count_stock + 1  # para usar en condición de cantidades de tranferencia inmediata
+                    count_stock2 = count_stock2 + 1  # para usar en condición de cantidades de tranferencia inmediata
+
+
                     # Cración de registros tranferecia inmediata no repetidas
-                    if self.len_id == self.repeated and count_stock1 <= 1:     # Casos ubicaciones no repetidos
+                    if self.len_id == self.No_rep and count_stock1 <= 1 and count2.product_qty > 1:     # Casos ubicaciones no repetidos
                         create_vals = {
                             'scheduled_date': self.date_end,
                             'location_id': count2.property_stock_inventory.id,
@@ -87,15 +95,18 @@ class purchase_requisition_extend(models.Model):
                             'picking_id': stock_picking_id.id,
                             'product_id': count2.product_id.id,
                             'product_uom': 1,
-                            'product_uom_qty': 0,
+                            'product_uom_qty': count2.inventory_product_qty,
                             'quantity_done': 0,
                             'description_picking': count2.name_picking,
                             'location_id': count2.picking_type_id.id,
                             'location_dest_id': count2.default_location_dest_id.id,
+                            'date_deadline': self.date_end,
                             }
                         self.env['stock.move'].create(create_vals2)
+
+
                     # Para casos donde lienas repetidas sean la misma ubicación
-                    elif self.len_id == 1 and count_stock <= 1:
+                    elif self.len_id == 1 and count_stock1 <= 1 and count2.product_qty > 1:
                         if count_stock2 <= 1:
                             create_vals = {
                                 'scheduled_date': self.date_end,
@@ -110,26 +121,35 @@ class purchase_requisition_extend(models.Model):
                             'picking_id': stock_picking_id.id,
                             'product_id': count2.product_id.id,
                             'product_uom': 1,
-                            'product_uom_qty': 0,
+                            'product_uom_qty': count2.inventory_product_qty,
                             'quantity_done': 0,
                             'description_picking': count2.name_picking,
                             'location_id': count2.picking_type_id.id,
                             'location_dest_id': count2.default_location_dest_id.id,
+                            'date_deadline': self.date_end
                             }
                         self.env['stock.move'].create(create_vals2)
-                        # Para casos donde exista lienas repetidas
 
-
-
+                    # Para casos donde exista lienas repetidas
+                    #if count_stock1 <= 1:
+                    #    for lacation in [8, 5]:
+                    #        if lacation == count2.default_location_dest_id.id:
+                    #            create_vals = {
+                    #                'scheduled_date': self.date_end,
+                    #                'location_id': count2.property_stock_inventory.id,
+                    #                'picking_type_id': count2.picking_type_id.id,
+                    #                'location_dest_id': count2.default_location_dest_id.id,
+                    #                }
+                    #            stock_picking_id = self.env['stock.picking'].create(create_vals)
 
 
 
 
     # Cuenta las trasnferencias inmediatas asociadas a la acuerdo de compra
-    @api.depends('stock_picking_ids')
+    @api.depends('purchase_ids2')
     def _compute_stock_picking_number(self):
         for requisition in self:
-            requisition.stock_picking_count = len(requisition.stock_picking_ids)
+            requisition.stock_picking_count = len(requisition.purchase_ids2)
 
     # Indica si el jefe inmediato está o no está ausente
     @api.depends('time_off_related')
