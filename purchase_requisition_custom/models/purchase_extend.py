@@ -17,7 +17,7 @@ class PurchaseOrder(models.Model):
                                           related='requisition_id.user_id', help='Usuario que solicita el acuerdo de compra')
     activity_id = fields.Integer(string='id actividad')
     # Obtiene la fecha y hora actual
-    current_date = fields.Datetime(string='Fecha actual', select=True,
+    current_date = fields.Datetime('Fecha actual', required=False, readonly=False, select=True,
                                    default=lambda self: fields.datetime.now())
     time_off = fields.Char(string='Disponibilidad', compute='_compute_number_of_days')
     time_off_related = fields.Boolean(string='Ausencia', related='aprove_manager.is_absent')
