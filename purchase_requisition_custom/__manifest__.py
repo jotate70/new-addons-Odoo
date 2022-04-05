@@ -32,6 +32,8 @@
                 'hr_holidays',
                 'purchase_stock',
                 'stock',
+                'helpdesk',
+                'web_domain_field',
                 ],
 
     # always loaded
@@ -42,8 +44,9 @@
         'views/purchase_requisition_extend_view.xml',
         'views/purchase_requisition_line_extend_view.xml',
         'views/users_extend_view.xml',
-        'views/stock_picking_extend_view.xml'
-        # 'data/plan_activity.xml'
+        'views/stock_picking_extend_view.xml',
+        'views/product_template_extend_view.xml',
+        'views/helpdesk_ticket_extended_view.xml'
     ],
 
     'installable': True,
