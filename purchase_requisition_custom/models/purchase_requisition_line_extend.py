@@ -11,29 +11,33 @@ class purchase_requisition_line_extend(models.Model):
     qty_available = fields.Float(related='product_id.qty_available', string='A mano',
                              help='Muestra la  cantidad a mano del producto en inventario')
 
+    # available_quantity_total = fields.Float(string='Stock', compute='_compute_quantities_available_product',
+    #                              help='Muestra la cantidad disponible que está sin reservar')
+
     qty_available_location = fields.Float(string='Disponible',
                                  help='Muestra la cantidad disponible en la ubicación selecionada del producto')
 
     location_id_domain = fields.Char(compute="_compute_location_stock_picking", readonly=True, store=False)
-
+    picking_type_id = fields.Many2one(comodel_name='stock.picking.type', string='Tipo de operación', readonly=True,
+                                      compute='_compute_picking_type_id')
     property_stock_inventory = fields.Many2one(comodel_name='stock.location',
-                                               string='Ubicación en inventario',
+                                               string='Mover de',
                                                help='Muestra la ubicación del producto en el inventario',
                                                )
+    location_dest_id_domain = fields.Char(compute="_compute_location_dest_id", readonly=True, store=False)
+    default_location_dest_id = fields.Many2one(comodel_name='stock.location', string='Mover A',
+                                               help='Ubicación a mover, con filtro de almacane y ubicación interna, cliente')
     inventory_product_qty = fields.Float(string='Cantidad inventario', compute='_compute_inventory_product_qty',
                                          help='Cantidad de pruductos que deseas sacar o mover de inventario')
     product_qty2 = fields.Float(string='Cantidad', help='Cantidad de pruductos a comprar')
-
-    picking_type_id = fields.Many2one(comodel_name='stock.picking.type', string='Tipo de operación',
-                                      domain="[('code', '=', 'internal')]")
-
-    default_location_dest_id = fields.Many2one(comodel_name='stock.location', string='Ubicación a mover',
-                                               related='picking_type_id.default_location_dest_id', help='Ubicación a mover')
 
     show_picking = fields.Boolean(string='show', related='requisition_id.show_picking',
                                   help='Mostrar/ocultar el button y smart button de solicitud de compra')
 
     name_picking = fields.Char(comodel_name='stock.location', related='product_id.name')
+
+    warehouse_id = fields.Many2one(comodel_name='stock.warehouse', string='Almacen', readonly=True,
+                                   related='default_location_dest_id.warehouse_id', help='Almacen a mover')
 
     # Función que aplica filtro dinamico de localización del producto en inventario
     @api.depends('product_id')
@@ -41,6 +45,19 @@ class purchase_requisition_line_extend(models.Model):
         for rec in self:
             rec.location_id_domain = json.dumps(
                 [('usage', '=', 'internal'), ('id', "=", rec.product_id.stock_quant.location_id.ids)]
+            )
+
+    # Función que filtra la ubicación por ubicación tipo cliente e interno, y que tenga un almacen relacionado
+    @api.depends('product_id')
+    def _compute_location_dest_id(self):
+        location_ids = []
+        location_id = self.env['stock.location'].search([])
+        for r in location_id:
+            if r.warehouse_id:
+                location_ids.append(r.id)
+        for rec in self:
+            rec.location_dest_id_domain = json.dumps(
+                [('usage', '=', ['internal', 'customer']), ('id', '=', location_ids)]
             )
 
     #   Función que restablece ubicación y cantidad
@@ -57,6 +74,12 @@ class purchase_requisition_line_extend(models.Model):
             if rec.product_id == self.product_id and rec.location_id == self.property_stock_inventory:
                 c = c + rec.available_quantity
             self.qty_available_location = c
+
+    #   Función que establece transferencia inmediata por defecto
+    @api.onchange('property_stock_inventory')
+    def _compute_picking_type_id(self):
+        picking_type = self.env['stock.picking.type'].sudo().search([('sequence_code', '=', 'TI')])
+        self.picking_type_id = picking_type.id
 
     # Función que calcula la cantidad de inventario a mover
     @api.onchange('product_qty2')
@@ -77,6 +100,13 @@ class purchase_requisition_line_extend(models.Model):
                 rec2.product_qty = rec2.product_qty2 - rec2.qty_available_location
             else:
                 rec2.product_qty = 0
+
+    # @api.depends('product_id')
+    # def _compute_quantities_available_product(self):
+    #     product = self.env['stock.quant'].sudo().search([('product_id', "=", self.product_id.ids)])
+    #     for rec in product:
+    #         self.available_quantity_total = rec.available_quantity
+
 
 
 

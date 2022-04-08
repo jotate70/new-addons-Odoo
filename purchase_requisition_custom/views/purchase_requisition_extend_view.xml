@@ -31,7 +31,7 @@
           <field name="type">ir.actions.act_window</field>
           <field name="res_model">helpdesk.ticket</field>
           <field name="view_mode">tree,form</field>
-          <field name="domain">[('requisition_id','=',active_id)]</field>
+          <field name="domain">[('requisition_many2many','=',active_id)]</field>
           <field name="context">{
               "default_requisition_id":active_id,
               "default_user_id": False,
@@ -94,12 +94,11 @@
           <xpath expr="//field[@name='date_end']" position="attributes">
               <attribute name="required">1</attribute>
           </xpath>
-          <xpath expr="//form[1]/sheet[1]/notebook[1]" position="inside">
-              <page string="Tickets" name="tickets" invisible="1">
-                  <group name="tickets_group">
-                      <field name="ticket_id"/>
-                  </group>
-              </page>
+          <xpath expr="//field[@name='company_id']" position="after">
+              <field name="ticket_many2many" widget="many2many_tags" options="{'no_create':true}"/>
+          </xpath>
+          <xpath expr="//field[@name='vendor_id']" position="attributes">
+              <attribute name="options">{"no_create":true, "no_open":true}</attribute>
           </xpath>
           <!--        Concatenar campos -->
           <field name="time_off" position="attributes">

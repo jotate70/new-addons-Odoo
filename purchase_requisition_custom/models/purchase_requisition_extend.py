@@ -23,13 +23,16 @@ class purchase_requisition_extend(models.Model):
     stock_picking_count = fields.Integer(compute='_compute_stock_picking_number', string='Numero de transferencias')
     show_picking = fields.Boolean(string='Picking',
                                   help='Mostrar/ocultar el campo cantidad de producto en stock')
-    ticket_id = fields.One2many(comodel_name='helpdesk.ticket', inverse_name="requisition_id",
-                                help='Ticket relacionado')
+
+    ticket_many2many = fields.Many2many(comodel_name='helpdesk.ticket', relation='x_helpdesk_ticket_purchase_requisition_rel',
+                                  column1='purchase_requisition_id', column2='helpdesk_ticket_id', string='Tickets')
+
     tickets_count = fields.Integer(compute='_compute_tickets_number', string='Numero de transferencias')
     c = fields.Integer(string='c')
     cc = fields.Integer(string='cc')
     len_id = fields.Integer(string='longitud')
 
+    # Función boton refrescar
     def action_show_picking(self):
         if self.show_picking == True:
             self.show_picking = False
@@ -38,7 +41,13 @@ class purchase_requisition_extend(models.Model):
 
     # Acción de button tranferencia inmediata
     def action_stock_picking_create(self):
-        self._stock_picking_create()
+        # Contador de tranferencias
+        comprob = self.env['stock.picking'].search([('requisition_id', "=", self.id)])
+        a = len(comprob.ids)
+        if a == 0:
+            self._stock_picking_create()
+        elif a > 0:
+            raise UserError('Existen tranferencias inmediatas asociadas,si desea realizar una nueva transferencia debe eliminar las existentes')
         return True
 
     # Función que genera las tranferencias dependiedo las ubicaciones a mover
@@ -84,6 +93,21 @@ class purchase_requisition_extend(models.Model):
                             'location_dest_id': count2.default_location_dest_id.id,
                         }
                         stock_picking_id = self.env['stock.picking'].sudo().create(create_vals)
+                        # Código que crea una nueva actividad
+                        if count2.warehouse_id.employee_id:
+                            create_activity = {
+                                'activity_type_id': 4,
+                                'summary': 'Transferencia inmediata:',
+                                'automated': True,
+                                'note': 'A sido asignado para confirmar la transferencia inmediata',
+                                'date_deadline': fields.datetime.now(),
+                                'res_model_id': self.env['ir.model']._get_id('stock.picking'),
+                                'res_id': stock_picking_id.id,
+                                'user_id': count2.warehouse_id.employee_id.user_id.id,
+                            }
+                            self.env['mail.activity'].sudo().create(create_activity)
+                        else:
+                            raise UserError('Se debe selecionar un encargado de almacen para poder asignar una tarea.')
                         # Cración de registros linea de productos de tranferecia inmediata
                         create_vals2 = {
                             'name': count2.name_picking,
@@ -109,6 +133,21 @@ class purchase_requisition_extend(models.Model):
                                 'location_dest_id': count2.default_location_dest_id.id,
                             }
                             stock_picking_id = self.env['stock.picking'].sudo().create(create_vals)
+                            # Código que crea una nueva actividad
+                            if count2.warehouse_id.employee_id:
+                                create_activity = {
+                                    'activity_type_id': 4,
+                                    'summary': 'Transferencia inmediata:',
+                                    'automated': True,
+                                    'note': 'A sido asignado para confirmar la transferencia inmediata',
+                                    'date_deadline': fields.datetime.now(),
+                                    'res_model_id': self.env['ir.model']._get_id('stock.picking'),
+                                    'res_id': stock_picking_id.id,
+                                    'user_id': count2.warehouse_id.employee_id.user_id.id,
+                                }
+                                self.env['mail.activity'].sudo().create(create_activity)
+                            else:
+                                raise UserError('Se debe selecionar un encargado de almacen para poder asignar una tarea.')
                         # Cración de registros linea de productos de tranferecia inmediata
                         create_vals2 = {
                             'name': count2.name_picking,
@@ -127,28 +166,46 @@ class purchase_requisition_extend(models.Model):
                 # Para casos donde exista lienas repetidas
                 if self.len_id > 1 and self.len_id < self.c and count1.inventory_product_qty > 0 and count_stock1 < 2:
                     for lacation in r:
-                        create_vals = {
-                            'scheduled_date': self.date_end,
-                            'location_id': count1.property_stock_inventory.id,
-                            'picking_type_id': count1.picking_type_id.id,
-                            'location_dest_id': lacation,
-                           }
-                        stock_picking_id = self.env['stock.picking'].sudo().create(create_vals)
-                        for lacation2 in self.line_ids:
-                            if lacation == lacation2.default_location_dest_id.id and lacation2.inventory_product_qty:
-                                create_vals2 = {
-                                    'name': lacation2.name_picking,
-                                    'picking_id': stock_picking_id.id,
-                                    'product_id': lacation2.product_id.id,
-                                    'product_uom': 1,
-                                    'product_uom_qty': lacation2.inventory_product_qty,
-                                    'quantity_done': 0,
-                                    'description_picking': lacation2.name_picking,
-                                    'location_id': lacation2.property_stock_inventory.id,
-                                    'location_dest_id': lacation2.default_location_dest_id.id,
-                                    'date_deadline': self.date_end,
+                            create_vals = {
+                                'scheduled_date': self.date_end,
+                                'location_id': count1.property_stock_inventory.id,
+                                'picking_type_id': count1.picking_type_id.id,
+                                'location_dest_id': lacation,
+                               }
+                            stock_picking_id = self.env['stock.picking'].sudo().create(create_vals)
+                            # Código que crea una nueva actividad
+                            warehouse_id2 = self.env['stock.location'].sudo().search([('id', "=", lacation)])
+                            if warehouse_id2.warehouse_id.employee_id:
+                                create_activity = {
+                                    'activity_type_id': 4,
+                                    'summary': 'Transferencia inmediata:',
+                                    'automated': True,
+                                    'note': 'A sido asignado para confirmar la transferencia inmediata',
+                                    'date_deadline': fields.datetime.now(),
+                                    'res_model_id': self.env['ir.model']._get_id('stock.picking'),
+                                    'res_id': stock_picking_id.id,
+                                    'user_id': warehouse_id2.warehouse_id.employee_id.user_id.id,
                                 }
-                                self.env['stock.move'].sudo().create(create_vals2)
+                                new_activity2 = self.env['mail.activity'].sudo().create(create_activity)
+                                # Escribe el id de la actividad en un campo
+                                stock_picking_id.update({'activity_id': new_activity2.id})
+                            else:
+                                raise UserError('Se debe selecionar un encargado de almacen para poder asignar una tarea.')
+                            for lacation2 in self.line_ids:
+                                if lacation == lacation2.default_location_dest_id.id and lacation2.inventory_product_qty:
+                                    create_vals2 = {
+                                        'name': lacation2.name_picking,
+                                        'picking_id': stock_picking_id.id,
+                                        'product_id': lacation2.product_id.id,
+                                        'product_uom': 1,
+                                        'product_uom_qty': lacation2.inventory_product_qty,
+                                        'quantity_done': 0,
+                                        'description_picking': lacation2.name_picking,
+                                        'location_id': lacation2.property_stock_inventory.id,
+                                        'location_dest_id': lacation2.default_location_dest_id.id,
+                                        'date_deadline': self.date_end,
+                                    }
+                                    self.env['stock.move'].sudo().create(create_vals2)
 
     # Cuenta las trasnferencias inmediatas asociadas a la acuerdo de compra
     @api.depends('purchase_ids2')
@@ -156,11 +213,11 @@ class purchase_requisition_extend(models.Model):
         for requisition in self:
             requisition.stock_picking_count = len(requisition.purchase_ids2)
 
-    # Cuenta las trasnferencias inmediatas asociadas a la acuerdo de compra
-    @api.depends('ticket_id')
+    # Cuenta los tickets asociadoss a los acuerdos de compra
+    @api.depends('ticket_many2many')
     def _compute_tickets_number(self):
         for tickets in self:
-            tickets.tickets_count = len(tickets.ticket_id)
+            tickets.tickets_count = len(tickets.ticket_many2many)
 
     # Indica si el jefe inmediato está o no está ausente
     @api.depends('time_off_related')
@@ -259,12 +316,15 @@ class purchase_requisition_extend(models.Model):
 
     # Función del boton aprobación, y tambien puede aprobar el jefe inmediato si no se encuentra el responsable de aprobación
     def action_approve(self):
-        if self.manager_id.user_id == self.env.user or (self.manager2_id.user_id == self.env.user and self.time_off_related == True):
+        if (self.manager_id.user_id == self.env.user and self.manager_id.active_budget == True) or (self.manager2_id.user_id == self.env.user and self.time_off_related == True):
             # Cambio de etapa
             self.write({'state': 'open'})
             #  Marca actividad como hecha de forma automatica
             new_activity = self.env['mail.activity'].search([('id', '=', self.activity_id)], limit=1)
             new_activity.action_feedback(feedback='Es aprobado')
+        elif self.manager_id.user_id == self.env.user and self.manager_id.active_budget == False:
+            raise UserError(
+                'No tiene asignado un monto de presupuesto o activa la opcíón sin tope, por favor comunicarse con el administrador para realizar asignación')
         else:
             raise UserError('No cuenta con el permiso para aprobar acuerdos de compra, por favor comunicarse con su jefe inmediato para aprobar este acuerdo de compra.')
 

@@ -6,15 +6,19 @@
       <field name="model">hr.employee</field>
       <field name="inherit_id" ref="hr.view_employee_form"/>
       <field name="arch" type="xml">
-        <xpath expr="//field[@name='coach_id']" position="after">
-          <field name="active_budget"/>
-        </xpath>
         <xpath expr="//page[@name='hr_settings']" position="after">
-          <page string="Presupuesto" attrs="{'invisible': [['active_budget', '!=', True]]}">
+          <page string="Requisiciones">
             <group>
               <group string="Presupuesto asignado">
-                <field name="general_manager"/>
-                <field name="budget" attrs="{'invisible': [('general_manager', '=', True)]}"/>
+                <field name="active_budget"/>
+                <field name="general_manager" attrs="{'invisible': [('active_budget', '=', False)]}"/>
+                <field name="budget"
+                       attrs="{'invisible': ['|', ('general_manager', '=', True), ('active_budget', '=', False)]}"/>
+              </group>
+              <group string="Almacen a disposición">
+                <field name="manager_warehouse" widget="many2many_tags" options="{'no_create':true}"
+                        domain="stock_warehouse_domain"/>
+                <field name="stock_warehouse_domain" invisible="1"/>
               </group>
             </group>
           </page>

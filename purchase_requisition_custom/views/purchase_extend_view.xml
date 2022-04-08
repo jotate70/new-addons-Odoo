@@ -22,6 +22,12 @@
         <xpath expr="//field[@name='date_order']" position="after">
           <field name="current_date" invisible="1"/>
         </xpath>
+        <xpath expr="//field[@name='partner_id']" position="attributes">
+              <attribute name="options">{"no_create":true, "no_open":true}</attribute>
+        </xpath>
+        <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/tree[1]/field[@name='product_id']" position="attributes">
+          <attribute name="options">{"no_create":true, "no_open":true}</attribute>
+        </xpath>
         <!--        Concatenar campos -->
         <field name="time_off" position="attributes">
           <attribute name="invisible">1</attribute>
@@ -30,7 +36,7 @@
           <label for="aprove_manager" string="Responsable de aprobación"/>
           <div>
             <field name="aprove_manager" class="oe_inline" attrs="{'invisible': [('requisition_id','=',False)]}"
-                 options="{'no_open':true}"/>
+                 options="{'no_create':true, 'no_open':true}"/>
             <span class="oe_read_only" attrs="{'invisible': [('aprove_manager', '=', False)]}"> - </span>
             <field name="time_off" placeholder="Number" class="oe_inline" style="color: green"
                  attrs="{'invisible': ['|', ('time_off_related', '=', True), ('aprove_manager', '=', False)]}"/>
