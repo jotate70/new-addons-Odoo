@@ -190,7 +190,7 @@ class purchase_requisition_extend(models.Model):
                                 # Escribe el id de la actividad en un campo
                                 stock_picking_id.update({'activity_id': new_activity2.id})
                             else:
-                                raise UserError('Se debe selecionar un encargado de almacen para poder asignar una tarea.')
+                                raise UserError('Se debe selecionar un encargado de almacen para poder asignar una tarea, comunicase con su administrador.')
                             for lacation2 in self.line_ids:
                                 if lacation == lacation2.default_location_dest_id.id and lacation2.inventory_product_qty:
                                     create_vals2 = {
