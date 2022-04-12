@@ -109,7 +109,7 @@ class PurchaseOrder(models.Model):
     # Función del boton aprobación
     def button_approve_extend(self, force=False):
         if self.related_requisition == True:
-            if self.env.user.employee_id.general_manager == False:
+            if self.env.user.employee_id.general_manager == False and self.env.user.employee_id.active_budget == True:  # Si tiene un tope
                 # aprobación para el manager
                 if self.aprove_manager.user_id == self.env.user:
                     # niveles de aprobación dependiendo el monto asignado al jefe inmediato
@@ -158,12 +158,14 @@ class PurchaseOrder(models.Model):
                     raise UserError('Ya aprobaste la solicitud, Su jefe inmediato debe aprobar ya que supera su presupuesto asignado.')
                 else:
                     raise UserError('El gerente responsable debe aprobar la solicitud.')
-            else:
+            elif self.env.user.employee_id.general_manager == True and self.env.user.employee_id.active_budget == True:
                 #  Marca actividad anterior como hecha de forma automatica
                 new_activity = self.env['mail.activity'].search([('id', '=', self.activity_id)], limit=1)
                 new_activity.action_feedback(feedback='Es aprobado')
                 # aprobación gerente general
                 self.button_approve()
+            elif self.env.user.employee_id.active_budget == False:
+                raise UserError('No tiene asignado un monto de presupuesto o activa la opcíón sin tope, por favor comunicarse con el administrador para realizar asignación.')
         # Función de aprobación por defecto
         else:
             self.button_approve()
