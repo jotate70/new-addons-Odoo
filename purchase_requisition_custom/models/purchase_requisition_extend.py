@@ -6,12 +6,15 @@ from odoo.exceptions import UserError
 class purchase_requisition_extend(models.Model):
     _inherit = 'purchase.requisition'
 
+    department_id = fields.Many2one(comodel_name='hr.department', related='user_id.department_id',
+                                   string='Departamento', store=True)
+
     manager_id = fields.Many2one(comodel_name='hr.employee', related='user_id.department_id.manager_id', string='Jefe del área',
                              help='Jefe inmediato respondable de su aprobación')
     manager2_id = fields.Many2one(comodel_name='hr.employee', related='manager_id.parent_id', string='Aprobación alternativa',
                              help='Cuando el jefe inmediato se encuentra ausente, debe aprobar el siguiente respondable')
     available = fields.Boolean(string='habilitado', compute='_domain_ochange_x_partner')
-    activity_id = fields.Integer(string='id actividad')
+    activity_id = fields.Integer(string='id actividad', store=False)
     # Obtiene la fecha y hora actual
     current_date = fields.Datetime('Fecha actual', required=False, readonly=False, select=True,
                                    default=lambda self: fields.datetime.now())
@@ -21,16 +24,15 @@ class purchase_requisition_extend(models.Model):
                                     string='Purchase Orders',
                                     states={'done': [('readonly', True)]})
     stock_picking_count = fields.Integer(compute='_compute_stock_picking_number', string='Numero de transferencias')
-    show_picking = fields.Boolean(string='Picking',
+    show_picking = fields.Boolean(string='Picking', store=False,
                                   help='Mostrar/ocultar el campo cantidad de producto en stock')
 
     ticket_many2many = fields.Many2many(comodel_name='helpdesk.ticket', relation='x_helpdesk_ticket_purchase_requisition_rel',
                                   column1='purchase_requisition_id', column2='helpdesk_ticket_id', string='Tickets')
-
     tickets_count = fields.Integer(compute='_compute_tickets_number', string='Numero de transferencias')
-    c = fields.Integer(string='c')
-    cc = fields.Integer(string='cc')
-    len_id = fields.Integer(string='longitud')
+    c = fields.Integer(string='c', store=False)
+    cc = fields.Integer(string='cc', store=False)
+    len_id = fields.Integer(string='longitud', store=False)
 
     # Función boton refrescar
     def action_show_picking(self):
@@ -87,10 +89,12 @@ class purchase_requisition_extend(models.Model):
                     # Cración de registros tranferecia inmediata no repetidas
                     if self.len_id == self.c and count_stock1 < 2 and count2.inventory_product_qty > 0:  # Casos ubicaciones no repetidos
                         create_vals = {
+                            # 'state': 'assigned',
                             'scheduled_date': self.date_end,
                             'location_id': count2.property_stock_inventory.id,
                             'picking_type_id': count2.picking_type_id.id,
                             'location_dest_id': count2.default_location_dest_id.id,
+                            'origin': self.name,
                         }
                         stock_picking_id = self.env['stock.picking'].sudo().create(create_vals)
                         # Código que crea una nueva actividad
@@ -110,6 +114,7 @@ class purchase_requisition_extend(models.Model):
                             raise UserError('Se debe selecionar un encargado de almacen para poder asignar una tarea.')
                         # Cración de registros linea de productos de tranferecia inmediata
                         create_vals2 = {
+                            # 'state': 'assigned',
                             'name': count2.name_picking,
                             'picking_id': stock_picking_id.id,
                             'product_id': count2.product_id.id,
@@ -120,6 +125,7 @@ class purchase_requisition_extend(models.Model):
                             'location_id': count2.property_stock_inventory.id,
                             'location_dest_id': count2.default_location_dest_id.id,
                             'date_deadline': self.date_end,
+                            'origin': self.name,
                         }
                         self.env['stock.move'].sudo().create(create_vals2)
 
@@ -127,10 +133,12 @@ class purchase_requisition_extend(models.Model):
                     elif self.len_id == 1 and count_stock1 <= 1 and count2.inventory_product_qty > 0:
                         if count_stock2 <= 1:
                             create_vals = {
+                                # 'state': 'assigned',
                                 'scheduled_date': self.date_end,
                                 'location_id': count2.property_stock_inventory.id,
                                 'picking_type_id': count2.picking_type_id.id,
                                 'location_dest_id': count2.default_location_dest_id.id,
+                                'origin': self.name,
                             }
                             stock_picking_id = self.env['stock.picking'].sudo().create(create_vals)
                             # Código que crea una nueva actividad
@@ -150,6 +158,7 @@ class purchase_requisition_extend(models.Model):
                                 raise UserError('Se debe selecionar un encargado de almacen para poder asignar una tarea.')
                         # Cración de registros linea de productos de tranferecia inmediata
                         create_vals2 = {
+                            # 'state': 'assigned',
                             'name': count2.name_picking,
                             'picking_id': stock_picking_id.id,
                             'product_id': count2.product_id.id,
@@ -159,7 +168,8 @@ class purchase_requisition_extend(models.Model):
                             'description_picking': count2.name_picking,
                             'location_id': count2.property_stock_inventory.id,
                             'location_dest_id': count2.default_location_dest_id.id,
-                            'date_deadline': self.date_end
+                            'date_deadline': self.date_end,
+                            'origin': self.name,
                             }
                         self.env['stock.move'].sudo().create(create_vals2)
 
@@ -167,10 +177,12 @@ class purchase_requisition_extend(models.Model):
                 if self.len_id > 1 and self.len_id < self.c and count1.inventory_product_qty > 0 and count_stock1 < 2:
                     for lacation in r:
                             create_vals = {
+                                # 'state': 'assigned',
                                 'scheduled_date': self.date_end,
                                 'location_id': count1.property_stock_inventory.id,
                                 'picking_type_id': count1.picking_type_id.id,
                                 'location_dest_id': lacation,
+                                'origin': self.name,
                                }
                             stock_picking_id = self.env['stock.picking'].sudo().create(create_vals)
                             # Código que crea una nueva actividad
@@ -190,10 +202,11 @@ class purchase_requisition_extend(models.Model):
                                 # Escribe el id de la actividad en un campo
                                 stock_picking_id.update({'activity_id': new_activity2.id})
                             else:
-                                raise UserError('Se debe selecionar un encargado de almacen para poder asignar una tarea, comunicase con su administrador.')
+                                raise UserError('Se debe selecionar un encargado de almacen para poder asignar una tarea.')
                             for lacation2 in self.line_ids:
                                 if lacation == lacation2.default_location_dest_id.id and lacation2.inventory_product_qty:
                                     create_vals2 = {
+                                        # 'state': 'assigned',
                                         'name': lacation2.name_picking,
                                         'picking_id': stock_picking_id.id,
                                         'product_id': lacation2.product_id.id,
@@ -204,6 +217,7 @@ class purchase_requisition_extend(models.Model):
                                         'location_id': lacation2.property_stock_inventory.id,
                                         'location_dest_id': lacation2.default_location_dest_id.id,
                                         'date_deadline': self.date_end,
+                                        'origin': self.name,
                                     }
                                     self.env['stock.move'].sudo().create(create_vals2)
 
