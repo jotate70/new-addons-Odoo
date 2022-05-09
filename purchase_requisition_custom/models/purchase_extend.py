@@ -21,6 +21,11 @@ class PurchaseOrder(models.Model):
                                    default=lambda self: fields.datetime.now())
     time_off = fields.Char(string='Disponibilidad', compute='_compute_number_of_days')
     time_off_related = fields.Boolean(string='Ausencia', related='aprove_manager.is_absent')
+    x_account_analytic_cost = fields.One2many(comodel_name='purchase_account_analytic_compute',
+                                              inverse_name='purchase_order', string='subtotal cuentas analíticas')
+    warehouse_manager = fields.Many2many(comodel_name='hr.employee', relation='x_hr_employee_stock_warehouse_rel',
+                                   column1='stock_warehouse_id', column2='hr_employee_id',
+                                   string='Warehouse manager', related='picking_type_id.default_location_dest_id.warehouse_id.employee_id')
 
     # Función que actualiza el responsable de aprobar
     @api.onchange('partner_id')
@@ -39,6 +44,8 @@ class PurchaseOrder(models.Model):
 
     # Función del boton confirmar
     def button_confirm_extend(self):
+        # Calcular costo en cuentas analiticas
+        self.compute_account_analytic_cost()
         # código nuevo con condición
         if self.related_requisition == True:
             if self.aprove_manager and self.time_off_related == False:
@@ -53,7 +60,7 @@ class PurchaseOrder(models.Model):
                         'activity_type_id': 4,
                         'summary': 'Solicitud de compra:',
                         'automated': True,
-                        'note': 'A sido asignado para aprobar la siguiente solicitud de compra',
+                        'note': 'Ha sido asignado para aprobar la siguiente solicitud de compra',
                         'date_deadline': self.current_date.date(),
                         'res_model_id': model_id,
                         'res_id': self.id,
@@ -81,7 +88,7 @@ class PurchaseOrder(models.Model):
                         'activity_type_id': 4,
                         'summary': 'Solicitud de compra:',
                         'automated': True,
-                        'note': 'A sido asignado para aprobar la siguiente solicitud de compra, el jefe responsable se encuentra ausente',
+                        'note': 'Ha sido asignado para aprobar la siguiente solicitud de compra, el jefe responsable se encuentra ausente',
                         'date_deadline': self.current_date.date(),
                         'res_model_id': model_id,
                         'res_id': self.id,
@@ -141,7 +148,7 @@ class PurchaseOrder(models.Model):
                                 'activity_type_id': 4,
                                 'summary': 'aprobación adicional, solicitud de compra:',
                                 'automated': True,
-                                'note': 'A sido asignado para aprobar la siguiente solicitud de compra, debido a que el montón supera la base del jefe a cargo',
+                                'note': 'Ha sido asignado para aprobar la siguiente solicitud de compra, debido a que el montón supera la base del jefe a cargo',
                                 'date_deadline': self.current_date.date(),
                                 'res_model_id': model_id,
                                 'res_id': self.id,
@@ -179,6 +186,8 @@ class PurchaseOrder(models.Model):
         self.write({'manager_before': False})
         # se reestablece el nivel de aprobación
         self.write({'state_aprove': 0})
+        # se reestablece la suma de cuentas x cuentas analiticas
+        self.compute_account_analytic_cost_delete()
         return {}
 
     # Boton cancelar
@@ -191,6 +200,41 @@ class PurchaseOrder(models.Model):
                 if inv and inv.state not in ('cancel', 'draft'):
                     raise UserError(_("Unable to cancel this purchase order. You must first cancel the related vendor bills."))
         self.write({'state': 'cancel', 'mail_reminder_confirmed': False})
+
+    # Función borrar linea
+    def compute_account_analytic_cost_delete(self):
+        self.write({'x_account_analytic_cost': [(5)]})
+
+    # subtotal los centros de costo x centro de costo
+    def compute_account_analytic_cost(self):
+        a = []
+        b = []
+        analytic_cost = 0
+        for rec1 in self.order_line:
+            if rec1.account_analytic_id:
+                a.append(rec1.account_analytic_id.id)
+                b = list(set(a))
+        for rec2 in b:
+            analytic_cost = 0
+            for rec3 in self.order_line:
+                if rec2 == rec3.account_analytic_id.id:
+                    analytic_cost += rec3.price_subtotal
+            self.write({'x_account_analytic_cost': [(0, 0, {'purchase_order_line': rec3.id,
+                                                            'account_analytic_id': rec2,
+                                                            'price_subtotal': analytic_cost,
+                                                            })]})
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

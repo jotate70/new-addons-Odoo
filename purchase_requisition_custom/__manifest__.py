@@ -16,6 +16,7 @@
         15.1.0 the option to assign stock picking tasks to warehouse managers will be added
         15.2.0 ticket relationship with requisitions is added
         15.2.1 Restrictions are added in fields
+        15.3.0 This versions contains stock movement in two steps, origin location to transit location, transit location to destination location. 
         """,
 
     'description': """
@@ -31,11 +32,11 @@
     # any module necessary for this one to work correctly
     'depends': ['purchase_requisition',
                 'hr_holidays',
-                'purchase_stock',
                 'stock',
-                'sale_stock',
-                'helpdesk',
+                'purchase_stock',
+                'helpdesk_ticket_custom',
                 'web_domain_field',
+                'account'
                 ],
 
     # always loaded
@@ -55,6 +56,9 @@
         'views/stock_picking_move_extend_view.xml',
         'views/stock_picking_type_extend_view.xml',
         'views/account_analytic_line_extend_view.xml',
+        'views/stock_quant_custom_view.xml',
+        'report/report_purchaseorder_document_extend.xml'
+        # 'report/report_deliveryslip_extend.xml'
     ],
 
     'installable': True,
