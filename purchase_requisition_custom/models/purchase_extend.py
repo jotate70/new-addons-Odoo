@@ -24,8 +24,21 @@ class PurchaseOrder(models.Model):
     x_account_analytic_cost = fields.One2many(comodel_name='purchase_account_analytic_compute',
                                               inverse_name='purchase_order', string='subtotal cuentas analíticas')
     warehouse_manager = fields.Many2many(comodel_name='hr.employee', relation='x_hr_employee_stock_warehouse_rel',
-                                   column1='stock_warehouse_id', column2='hr_employee_id',
-                                   string='Warehouse manager', related='picking_type_id.default_location_dest_id.warehouse_id.employee_id')
+                                         column1='stock_warehouse_id', column2='hr_employee_id',
+                                         string='Responsable de almacen',
+                                         related='picking_type_id.default_location_dest_id.warehouse_id.employee_id')
+    mobile_phone = fields.Char(string='Teléfono celular',
+                               related='picking_type_id.default_location_dest_id.warehouse_id.employee_id.mobile_phone')
+
+    # Actualizar estado requisición
+    @api.onchange('partner_id')
+    def update_state_requisition(self):
+        if self.requisition_id and self.requisition_state == 'assigned' or self.requisition_state == 'open':
+            requisition_state = self.env['purchase.requisition'].search([('id', '=', self.requisition_id.ids)], limit=1)
+            requisition_state.update({
+                'state': 'open',
+                'purchase_order_process': True,
+            })
 
     # Función que actualiza el responsable de aprobar
     @api.onchange('partner_id')
@@ -48,6 +61,7 @@ class PurchaseOrder(models.Model):
         self.compute_account_analytic_cost()
         # código nuevo con condición
         if self.related_requisition == True:
+            self.update_state_requisition()     # Actualizar esatdo a open en la requisición
             if self.aprove_manager and self.time_off_related == False:
                 for order in self:
                     if order.state not in ['draft', 'sent']:
@@ -201,6 +215,14 @@ class PurchaseOrder(models.Model):
                     raise UserError(_("Unable to cancel this purchase order. You must first cancel the related vendor bills."))
         self.write({'state': 'cancel', 'mail_reminder_confirmed': False})
 
+    # Accón contabilidad analítica
+    def button_account_analytic_cost(self):
+        if self.x_account_analytic_cost:
+            return True
+        else:
+            self.compute_account_analytic_cost_delete()
+            self.compute_account_analytic_cost()
+
     # Función borrar linea
     def compute_account_analytic_cost_delete(self):
         self.write({'x_account_analytic_cost': [(5)]})
@@ -223,6 +245,7 @@ class PurchaseOrder(models.Model):
                                                             'account_analytic_id': rec2,
                                                             'price_subtotal': analytic_cost,
                                                             })]})
+
 
 
 

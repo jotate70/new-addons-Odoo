@@ -18,6 +18,29 @@ class stock_picking_extend(models.Model):
     stage = fields.Integer(string='Etapa')
     validation = fields.Integer(string='Validacación', help='Permite validar el stock picking de transito a destino')
     parent_stock_picking = fields.Many2one(comodel_name='stock.picking', string='Stock picking padre')
+    signature_receives = fields.Binary(string='Recibe')
+    employee_receives_id = fields.Many2one(comodel_name='hr.employee', string='Nombre', store=True)
+    signature_delivery = fields.Binary(string='Entrega')
+    employee_delivery_id = fields.Many2one(comodel_name='hr.employee', string='Nombre', store=True)
+    signature_warehouse_manager = fields.Binary(string='Responsable de almacen')
+    employee_warehouse_id = fields.Many2one(comodel_name='hr.employee', string='Nombre', store=True)
+    x_type_id = fields.Many2one(comodel_name='purchase_requisition_custom_stock_picking_type',
+                                string='Tipo', help='Indica el tipo de tranferencia de inventario')
+
+    # Selecciona el empleado responsable de bodega
+    @api.onchange('signature_warehouse_manager')
+    def selection_warehouse_manager(self):
+        self.write({'employee_warehouse_id': self.env.user.employee_id})
+
+    # Selecciona el empleado que firma como responsable de entrega
+    @api.onchange('signature_delivery')
+    def selection_delivery(self):
+        self.write({'employee_delivery_id': self.env.user.employee_id})
+
+    # Selecciona el empleado que firma como responsable de entrega
+    @api.onchange('signature_receives')
+    def selection_receives(self):
+        self.write({'employee_receives_id': self.env.user.employee_id})
 
     # Se crea apunte analítico
     def compute_account_analytic_cost(self):

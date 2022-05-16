@@ -13,8 +13,6 @@ class StockQuant(models.Model):
                                           related='location_id.transit_location_id',
                                           help='Solo se permite una ubicación de transito por almacen')
 
-    # plaque = fields.Many2one(comodel_name='stock.production.lot', string='Plaque', index=True,
-    #                          ondelete='restrict', check_company=True,
-    #                          domain=lambda self: self._domain_lot_id())
+    # plaque_id = fields.Many2one(comodel_name='stock_production_plaque', string='Placa')
 
 
