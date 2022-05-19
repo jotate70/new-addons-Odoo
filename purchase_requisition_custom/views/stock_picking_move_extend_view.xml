@@ -23,19 +23,18 @@
         </xpath>
         <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='operations']/field[@name='move_ids_without_package']/tree[1]/field[@name='product_uom']" position="after">
           <field name="standard_price" optional="hide"/>
-          <field name="standard_price_t" optional="hide"/>
+          <field name="standard_price_t" widget="monetary" optional="hide"/>
+          <field name="fee_unit" widget="monetary" optional="show"/>
         </xpath>
         <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='operations']/field[@name='move_ids_without_package']/tree[1]/field[@name='location_id']" position="attributes">
           <attribute name="invisible"/>
           <attribute name="attrs">{}</attribute>
           <attribute name="options">{"no_create":true, "no_open":true}</attribute>
-          <field name="standard_price_t" optional="show"/>
         </xpath>
         <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='operations']/field[@name='move_ids_without_package']/tree[1]/field[@name='location_dest_id']" position="attributes">
           <attribute name="invisible"/>
           <attribute name="attrs">{}</attribute>
           <attribute name="options">{"no_create":true, "no_open":true}</attribute>
-          <field name="standard_price_t" optional="show"/>
         </xpath>
       </field>
     </record>

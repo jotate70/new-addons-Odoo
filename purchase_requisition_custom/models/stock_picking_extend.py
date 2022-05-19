@@ -20,10 +20,16 @@ class stock_picking_extend(models.Model):
     parent_stock_picking = fields.Many2one(comodel_name='stock.picking', string='Stock picking padre')
     signature_receives = fields.Binary(string='Recibe')
     employee_receives_id = fields.Many2one(comodel_name='hr.employee', string='Nombre', store=True)
+    employee_receives_job_id = fields.Many2one(comodel_name='hr.job', string='Puesto de trabajo', store=True,
+                                               related='employee_receives_id.job_id')
     signature_delivery = fields.Binary(string='Entrega')
     employee_delivery_id = fields.Many2one(comodel_name='hr.employee', string='Nombre', store=True)
+    employee_delivery_job_id = fields.Many2one(comodel_name='hr.job', string='Puesto de trabajo', store=True,
+                                               related='employee_delivery_id.job_id')
     signature_warehouse_manager = fields.Binary(string='Responsable de almacen')
     employee_warehouse_id = fields.Many2one(comodel_name='hr.employee', string='Nombre', store=True)
+    employee_warehouse_job_id = fields.Many2one(comodel_name='hr.job', string='Puesto de trabajo', store=True,
+                                               related='employee_warehouse_id.job_id')
     x_type_id = fields.Many2one(comodel_name='purchase_requisition_custom_stock_picking_type',
                                 string='Tipo', help='Indica el tipo de tranferencia de inventario')
 

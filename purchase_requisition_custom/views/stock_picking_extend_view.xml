@@ -30,21 +30,24 @@
             <group name="group_top">
               <group name="group_left">
                 <field name="signature_delivery" widget="signature"/>
-                <field name="employee_delivery_id" readonly="1"/>
+                <field name="employee_delivery_id" readonly=""/>
+                <field name="employee_delivery_job_id" readonly=""/>
               </group>
               <group name="group_right">
                 <field name="signature_warehouse_manager" widget="signature"/>
-                <field name="employee_warehouse_id" readonly="1"/>
+                <field name="employee_warehouse_id" readonly=""/>
+                <field name="employee_warehouse_job_id" readonly=""/>
               </group>
             </group>
             <group name="group_top2">
               <group name="group_left2" invisible="1">
                 <field name="signature_receives" widget="signature"/>
-                <field name="employee_receives_id" readonly="1"/>
+                <field name="employee_receives_id" readonly=""/>
+                <field name="employee_receives_job_id" readonly=""/>
               </group>
             </group>
           </page>
-        </xpath>  1
+        </xpath>
         <xpath expr="//field[@name='partner_id']" position="attributes">
           <attribute name="options">{"no_create":true, "no_open":true}</attribute>
         </xpath>
