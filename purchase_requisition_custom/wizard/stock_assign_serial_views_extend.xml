@@ -8,6 +8,7 @@
           <xpath expr="//field[@name='next_serial_count']" position="after">
               <field name="fee_unit" invisible=""/>
               <field name="observation" invisible=""/>
+              <field name="contract_date" optional="show" invisible=""/>
           </xpath>
       </field>
     </record>

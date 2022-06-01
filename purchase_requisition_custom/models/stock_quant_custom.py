@@ -12,7 +12,17 @@ class StockQuant(models.Model):
     transit_location_id = fields.Many2one(comodel_name='stock.location', string='Ubicación de transito',
                                           related='location_id.transit_location_id',
                                           help='Solo se permite una ubicación de transito por almacen')
+    fee_unit = fields.Float(string='Tarifa unitaria', related='lot_id.fee_unit')
+    plaque_id = fields.Many2one(comodel_name='stock_production_plaque', string='Placa', related='lot_id.plaque_id')
 
-    # plaque_id = fields.Many2one(comodel_name='stock_production_plaque', string='Placa')
+    contract_date = fields.Date(strins='Fecha de contrato', related='lot_id.contract_date',
+                                help='Indica la fecha que se realiza el contrato asociada a dicha transferencia')
+
+    contract_date_end = fields.Date(strins='Fecha de contrato', related='lot_id.contract_date_end',
+                                help='Indica la fecha que se realiza el contrato asociada a dicha transferencia')
+
+
+
+
 
 

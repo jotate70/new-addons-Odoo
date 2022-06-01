@@ -6,6 +6,7 @@ import json
 class purchase_requisition_line_extend(models.Model):
     _inherit = 'purchase.requisition.line'
 
+    image_product = fields.Binary(string='Imagen', related='product_id.image_1920')
     product_qty = fields.Float(string='Quantity', digits='Product Unit of Measure', compute='_compute_product_qty')
     available_quantity_total = fields.Float(string='Stock', related='product_id.free_qty',
                                  help='Muestra la cantidad disponible que está sin reservar')
