@@ -235,12 +235,14 @@ class stock_picking_extend(models.Model):
                     action = self.action_view_reception_report()
                     action['context'] = {'default_picking_ids': self.ids}
                     return action
-        # Crea registro de placa/tarifa/fecha de contrato
-        for rec in self.move_line_ids_without_package:
-            rec.lot_id.compute_plaque_id()
-        # Crea registro de cuenta analiticas
-        self.compute_account_analytic_cost()
+        # # Crea registro de placa/tarifa/fecha de contrato
+        # for rec in self.move_line_ids_without_package:
+        #     rec.lot_id.compute_plaque_id()
+        # # Crea registro de cuenta analiticas
+        # self.compute_account_analytic_cost()
         return True
+
+
 
 
 
