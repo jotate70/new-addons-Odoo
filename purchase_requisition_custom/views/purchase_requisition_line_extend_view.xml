@@ -23,6 +23,9 @@
                     <field name="default_location_dest_id" options="{'no_create':true, 'no_open':true}" domain="location_dest_id_domain" required="1"/>
                     <field name="product_qty2"/>
                 </xpath>
+                <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='line_ids']/tree[1]/field[@name='account_analytic_id']" position="attributes">
+                    <attribute name="required">1</attribute>
+                </xpath>
                 <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='line_ids']/tree[1]/field[@name='product_qty']" position="attributes">
                     <attribute name="optional">show</attribute>
                 </xpath>
@@ -31,7 +34,7 @@
                     <field name="show_picking" invisible="1"/>
                 </xpath>
                 <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='line_ids']/tree[1]/field[@name='price_unit']" position="after">
-                    <field name="x_project" options="{'no_create':true, 'no_open':true}" required="1"/>
+                    <field name="x_project" options="{'no_create':true, 'no_open':true}" invisible="1"/>
                     <field name="observations" optional="show"/>
                 </xpath>
                 <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='line_ids']/tree[1]/field[@name='product_qty']" position="attributes">

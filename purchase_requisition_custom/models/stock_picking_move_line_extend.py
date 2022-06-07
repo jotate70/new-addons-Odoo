@@ -10,11 +10,20 @@ class StockMoveLine(models.Model):
     plaque_id = fields.Many2one(comodel_name='stock_production_plaque', string='Placa')
     fee_unit = fields.Float(string='Tarifa', digits='Product fee')
     fee_subtotal = fields.Float(compute='_compute_fee_subtotal', string='Subtotal Tarifa')
-    contract_date = fields.Date(strins='Fecha de contrato', related='picking_id.contract_date',
+    contract_date = fields.Date(string='Inicio de contrato', related='picking_id.contract_date',
                                 help='Indica la fecha que se realiza el contrato asociada a dicha transferencia')
-    contract_date_end = fields.Date(strins='Fecha de contrato final', related='picking_id.contract_date_end',
+    contract_date_end = fields.Date(string='Finalización de contrato', related='picking_id.contract_date_end',
                                     help='Indica la fecha que se realiza el contrato asociada a dicha transferencia')
     observation = fields.Char(string='Observación')
+    x_type_id = fields.Many2one(comodel_name='purchase_requisition_custom_stock_picking_type', related='picking_id.x_type_id',
+                                string='Tipo', help='Indica el tipo de tranferencia de inventario')
+    currency_id = fields.Many2one(comodel_name='res.currency', string='Moneda', related='picking_id.currency_id')
+
+    # Optiene la tarifa subtotal
+    @api.depends('fee_unit')
+    def _compute_fee_subtotal(self):
+        for rec in self:
+            rec.fee_subtotal = rec.fee_unit * rec.qty_done
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -361,7 +370,7 @@ class StockMoveLine(models.Model):
                                                                           fee_unit=ml.fee_unit, contract_date=ml.contract_date, contract_date_end=ml.contract_date_end)
                 if available_qty < 0 and ml.lot_id:
                     # see if we can compensate the negative quants with some untracked quants
-                    untracked_qty = Quant._get_available_quantity(ml.product_id, ml.location_id, lot_id=False, plaque_id=False, package_id=ml.package_id, owner_id=ml.owner_id, strict=True)
+                    untracked_qty = Quant._get_available_quantity(ml.product_id, ml.location_id, lot_id=False, package_id=ml.package_id, owner_id=ml.owner_id, strict=True)
                     if untracked_qty:
                         taken_from_untracked_qty = min(untracked_qty, abs(quantity))
                         Quant._update_available_quantity(ml.product_id, ml.location_id, -taken_from_untracked_qty, lot_id=False, plaque_id=False, package_id=ml.package_id, owner_id=ml.owner_id,

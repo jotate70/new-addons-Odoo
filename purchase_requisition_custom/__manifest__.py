@@ -64,6 +64,8 @@
         'views/stock_move_line_extend_view.xml',
         'views/type_stock_picking_view.xml',
         'views/stock_production_lot_extend_view.xml',
+        'views/stock_plaque_view.xml',
+        'views/purchase_requisition_type_extend_view.xml',
         'report/report_purchaseorder_document_extend.xml',
         'report/report_deliveryslip_extend.xml',
         'wizard/stock_assign_serial_views_extend.xml',

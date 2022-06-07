@@ -9,9 +9,6 @@
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='ref']" position="after">
                     <field name="plaque_id"/>
-                    <field name="fee_unit" invisble=""/>
-                    <field name="contract_date" invisble=""/>
-                    <field name="contract_date_end" invisble=""/>
                 </xpath>
             </field>
         </record>

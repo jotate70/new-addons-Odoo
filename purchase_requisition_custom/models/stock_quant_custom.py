@@ -1,5 +1,4 @@
 from odoo import fields, models, api, _
-from odoo.osv import expression
 from odoo.tools.float_utils import float_compare, float_is_zero
 
 class StockQuant(models.Model):
@@ -16,12 +15,11 @@ class StockQuant(models.Model):
                                           help='Solo se permite una ubicación de transito por almacen')
     fee_unit = fields.Float(string='Tarifa unitaria')
     plaque_id = fields.Many2one(comodel_name='stock_production_plaque', string='Placa', index=True)
-
-    contract_date = fields.Date(strins='Fecha de contrato',
+    contract_date = fields.Date(string='Inicio de contrato',
                                 help='Indica la fecha que se realiza el contrato asociada a dicha transferencia')
-
-    contract_date_end = fields.Date(strins='Fecha de contrato',
+    contract_date_end = fields.Date(string='Finalización de contrato',
                                 help='Indica la fecha que se realiza el contrato asociada a dicha transferencia')
+    product_category_id = fields.Many2one(comodel_name='product.category', name='Categoria de producto', related='product_id.categ_id', store=True)
 
     @api.model
     def _update_available_quantity(self, product_id, location_id, quantity, lot_id=None, plaque_id=None, package_id=None, owner_id=None,

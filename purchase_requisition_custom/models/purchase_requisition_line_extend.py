@@ -34,8 +34,9 @@ class purchase_requisition_line_extend(models.Model):
     warehouse_id = fields.Many2one(comodel_name='stock.warehouse', string='A almacen',
                                    domain="[('usage', '=', 'supplier'), ('available_requisition', '=', 'True')]", help='Almacen a mover')
     observations = fields.Text(string='Observaciones')
-    x_project = fields.Many2one(comodel_name='helpdesk_project', string='Proyecto', required="True",
+    x_project = fields.Many2one(comodel_name='helpdesk_project', string='Proyecto',
                                 help='El proyecto está relacionado con su respectivo centro de costo')
+    account_analytic_id = fields.Many2one('account.analytic.account', string='Analytic Account')
 
     # Contabilidad analítica
     @api.onchange('default_location_dest_id')

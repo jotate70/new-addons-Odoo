@@ -22,4 +22,5 @@ from . import stock_picking_move_line_extend
 from . import type_stock_picking
 from . import stock_production_lot_extend
 from . import purchase_order_line_extend
+from . import purchase_requisition_type_extend
 
