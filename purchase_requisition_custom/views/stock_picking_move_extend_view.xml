@@ -57,6 +57,8 @@
               <field name="lot_name"/>
               <field name="plaque_id"/>
               <field name="qty_done"/>
+              <field name="product_uom_category_id" invisible="1"/>
+              <field name="product_uom_id"/>
               <field name="fee_unit"/>
               <field name="contract_date" optional="hide"/>
               <field name="contract_date_end" optional="hide"/>

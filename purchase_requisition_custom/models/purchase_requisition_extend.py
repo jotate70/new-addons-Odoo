@@ -181,6 +181,7 @@ class purchase_requisition_extend(models.Model):
                                    'location_id': transit_stock_picking.warehouse_id.lot_stock_id.id,
                                    'picking_type_id': transit_stock_picking.warehouse_id.int_type_id.id,
                                    'location_dest_id': transit_stock_picking.transit_location_id.id,
+                                   'currency_id': self.currency_id.id,
                                    }
                     stock_picking_id = self.env['stock.picking'].sudo().create(create_vals)
                     #self.write({'line_ids': [(1, stock_picking_id.id, {'state': 'assigned'})]})
@@ -289,6 +290,7 @@ class purchase_requisition_extend(models.Model):
                                    'location_id': dest_stock_picking.transit_location_id.id,
                                    'picking_type_id': dest_stock_picking.dest_warehouse_id.int_type_id.id,
                                    'location_dest_id': dest_stock_picking.dest_location_id.id,
+                                   'currency_id': self.currency_id.id,
                                    }
                     stock_picking_id = self.env['stock.picking'].sudo().create(create_vals)
                     # Código que crea una nueva actividad

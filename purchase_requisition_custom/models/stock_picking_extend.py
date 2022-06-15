@@ -38,6 +38,9 @@ class stock_picking_extend(models.Model):
     contract_date_end = fields.Date(string='Finalización de contrato',
                                     help='Indica la fecha que se realiza el contrato asociada a dicha transferencia')
     currency_id = fields.Many2one(comodel_name='res.currency', string='Moneda', required=True)
+    order_id2 = fields.Many2one(comodel_name='purchase.order', string='Order Reference transit', index=True,
+                                required=True,
+                                ondelete='cascade')
 
     # seleciona divisa por defecto
     @api.onchange('picking_type_id')

@@ -4,6 +4,7 @@ from odoo.tools.float_utils import float_compare, float_is_zero
 class StockQuant(models.Model):
     _inherit = 'stock.quant'
 
+    default_code = fields.Char(string='referencia', related='product_id.default_code')
     location = fields.Many2one(comodel_name='location_warehouse',
                                string='Locación', related='warehouse_id.location_id',
                                help='Muestra la ubicación de la ciudad/locación del producto',
@@ -20,6 +21,15 @@ class StockQuant(models.Model):
     contract_date_end = fields.Date(string='Finalización de contrato',
                                 help='Indica la fecha que se realiza el contrato asociada a dicha transferencia')
     product_category_id = fields.Many2one(comodel_name='product.category', name='Categoria de producto', related='product_id.categ_id', store=True)
+
+    usage = fields.Selection([
+        ('supplier', 'Almacen Cliente'),
+        ('internal', 'Almacen Interno'),
+        ('customer', 'Almacen Proveedor')], string='Tipo de almacén',
+        index=True, required=True, related='warehouse_id.usage',
+        help="* Vendor Location: Virtual location representing the source location for products coming from your vendors"
+             "\n* Internal Location: Physical locations inside your own warehouses,"
+             "\n* Customer Location: Virtual location representing the destination location for products sent to your customers")
 
     @api.model
     def _update_available_quantity(self, product_id, location_id, quantity, lot_id=None, plaque_id=None, package_id=None, owner_id=None,

@@ -112,6 +112,8 @@
           confirm="¿Desea anular esta solicitud de compra?"/>
           <button name="button_account_analytic_cost" string="Recalcular" type="object" groups="purchase.group_purchase_user"
                   invisible=""/>
+          <button name="stock_picking_create_order_line" string="demo" type="object" groups="purchase.group_purchase_user"
+                  invisible=""/>
         </xpath>
         <xpath expr="//button[@name='button_cancel']" position="replace" >
           <button name="button_cancel" states="draft,sent,purchase" string="Cancelar" type="object" data-hotkey="x"
