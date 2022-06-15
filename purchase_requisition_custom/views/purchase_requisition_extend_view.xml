@@ -34,6 +34,12 @@
           <field name="domain">[('requisition_id', '!=', False), ('picking_type_id.code', '=', 'incoming')]</field>
       </record>
 
+      <record model="ir.actions.act_window" id="action_window_purchase_requisition_setting">
+          <field name="name">Tipo de acuerdo de compra</field>
+          <field name="res_model">purchase.requisition.type</field>
+          <field name="view_mode">list,form</field>
+      </record>
+
       <!-- Top menu item -->
       <menuitem name="Requisiciones"
                 id="menu_purchase_requisition_root"
@@ -50,6 +56,12 @@
                 id="menu_purchase_requisition_transfer"
                 parent="menu_purchase_requisition_root"
                 sequence="12"/>
+
+      <menuitem name="Configuración"
+                id="menu_purchase_requisition_setting"
+                parent="menu_purchase_requisition_root"
+                groups="purchase.group_purchase_manager"/>
+                sequence="13"/>
 
       <!--Supplier menu-->
       <menuitem name="Mis requisiciones"
@@ -71,6 +83,11 @@
                 id="supplier_menu_purchase_incoming"
                 parent="menu_purchase_requisition_transfer"
                 action="action_window_purchase_requisition_incoming" sequence="4"/>
+
+      <menuitem name="Tipo de acuerdo de compra"
+                id="supplier_menu_purchase_incoming"
+                parent="menu_purchase_requisition_setting"
+                action="action_window_purchase_requisition_setting" sequence="5"/>
 
       <!-- Smart button -->
       <record model="ir.actions.act_window" id="action_stock_picking_to_so">
