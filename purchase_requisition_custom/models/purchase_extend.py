@@ -1,5 +1,6 @@
 from odoo import fields, models, api, _
 from odoo.exceptions import UserError
+from random import randint
 
 class PurchaseOrder(models.Model):
     _inherit = 'purchase.order'
@@ -21,6 +22,195 @@ class PurchaseOrder(models.Model):
                                    default=lambda self: fields.datetime.now())
     time_off = fields.Char(string='Disponibilidad', compute='_compute_number_of_days')
     time_off_related = fields.Boolean(string='Ausencia', related='aprove_manager.is_absent')
+    x_account_analytic_cost = fields.One2many(comodel_name='purchase_account_analytic_compute',
+                                              inverse_name='purchase_order', string='subtotal cuentas analíticas')
+    warehouse_manager = fields.Many2many(comodel_name='hr.employee', relation='x_hr_employee_stock_warehouse_rel',
+                                         column1='stock_warehouse_id', column2='hr_employee_id',
+                                         string='Responsable de almacen',
+                                         related='picking_type_id.default_location_dest_id.warehouse_id.employee_id')
+    mobile_phone = fields.Char(string='Teléfono celular',
+                               related='picking_type_id.default_location_dest_id.warehouse_id.employee_id.mobile_phone')
+    x_stock_picking_transit_order_line = fields.One2many(comodel_name='stock_picking_transit_order_line', inverse_name='order_id',
+                                                         string='Stock picking transitorio_order_line')
+
+    # Crea modelo de transición
+    def stock_picking_create_order_line(self):
+        # --------------------------------------   Etapa 1 -------------------------------------------------------
+        l = []
+        a = []
+        for rec1 in self.order_line:
+            if rec1.transit_location_id:
+                l.append(rec1.location_dest_id.id)
+                a = list(set(l))
+            else:
+                raise UserError('No se ha establecido una ubicación de tránsito en la categoría de productos.')
+        for rec2 in a:
+            picking = self.env['purchase.order.line'].search([('location_dest_id', '=', rec2), ('order_id', '=', self.ids)], limit=1)
+            create_vals = {'stage': 1,
+                           'order_id2': self.id,
+                           'origin': self.name,
+                           'scheduled_date': self.date_planned,
+                           'picking_type_id': picking.location_dest_id.warehouse_id.in_type_id.id,
+                           'location_id': picking.location_id.id,
+                           'location_dest_id': picking.transit_location_id.id,
+                           'currency_id': self.env.company.currency_id.id,
+                           'requisition_id': self.requisition_id.id,
+                           'currency_id': self.currency_id.id,
+                        }
+            stock_picking1 = self.env['stock.picking'].create(create_vals)
+            # Código que crea una nueva actividad
+            create_activity = {
+                'activity_type_id': 4,
+                'summary': 'Transferencia, Ingreso de invetario:',
+                'automated': True,
+                'note': 'Ha sido asignado para validar el ingreso de inventario',
+                'date_deadline': fields.datetime.now(),
+                'res_model_id': self.env['ir.model']._get_id('stock.picking'),
+                'res_id': stock_picking1.id,
+                'user_id': picking.warehouse_id.employee_id.user_id.id,
+            }
+            new_activity1 = self.env['mail.activity'].sudo().create(create_activity)
+            # Escribe el id de la actividad en un campo
+            stock_picking1.write({'activity_id': new_activity1.id})
+        for rec3 in self.order_line:
+            stock_picking2 = self.env['stock.picking'].search([('order_id2', '=', self.ids), ('requisition_id', '=', self.requisition_id.ids),
+                                                                ('picking_type_id', '=', rec3.location_dest_id.warehouse_id.in_type_id.ids),
+                                                                ('location_dest_id', '=', rec3.transit_location_id.ids), ('stage', '=', 1)], limit=1)
+            # Creación de registros necearios para el stock picking move
+            self.write({'x_stock_picking_transit_order_line': [(0, 0, {'stage': 1,
+                                                                       'order_id': self.id,
+                                                                       'purchase_line_id': rec3.id,
+                                                                       'stock_picking_id': stock_picking2.id,
+                                                                       'product_id': rec3.product_id.id,
+                                                                       'picking_type_id': rec3.location_dest_id.warehouse_id.in_type_id.id,
+                                                                       'location_id': rec3.location_id.id,
+                                                                       'transit_location_id': rec3.transit_location_id.id,
+                                                                       'dest_warehouse_id': rec3.warehouse_id.id,
+                                                                       'dest_location_id': rec3.location_dest_id.id,
+                                                                       'account_analytic_id': rec3.account_analytic_id.id,
+                                                                       'quantity': rec3.product_qty,
+                                                                    })]})
+        for rec4 in self.x_stock_picking_transit_order_line:
+            if rec4.stage == 1:
+                create_vals2 = {
+                    'stage': 1,
+                    'origin': self.name,
+                    'purchase_line_id': rec4.purchase_line_id.id,
+                    'name': rec4.stock_picking_id.name,
+                    'picking_id': rec4.stock_picking_id.id,
+                    'product_id': rec4.product_id.id,
+                    'product_uom': 1,
+                    'product_uom_qty': rec4.quantity,
+                    'quantity_done': 0,
+                    'location_id': rec4.location_id.id,
+                    'location_dest_id': rec4.transit_location_id.id,
+                    'date_deadline': fields.datetime.now(),
+                }
+                self.env['stock.move'].sudo().create(create_vals2)
+        # --------------------------------------   Etapa 2 -------------------------------------------------------
+        for rec5 in a:
+            picking2 = self.env['stock_picking_transit_order_line'].search([('dest_location_id', '=', rec5), ('order_id', '=', self.ids)], limit=1)
+            create_vals3 = {'stage': 2,
+                            'order_id2': self.id,
+                            'origin': picking2.stock_picking_id.name,
+                            'parent_stock_pic'
+                            'king': picking2.stock_picking_id.id,
+                            'scheduled_date': self.date_planned,
+                            'picking_type_id': picking2.dest_location_id.warehouse_id.int_type_id.id,
+                            'location_id': picking2.transit_location_id.id,
+                            'location_dest_id': picking2.dest_location_id.id,
+                            'currency_id': self.env.company.currency_id.id,
+                            'requisition_id': self.requisition_id.id,
+                            'currency_id': self.currency_id.id,
+                            }
+            stock_picking2 = self.env['stock.picking'].create(create_vals3)
+            # Código que crea una nueva actividad
+            create_activity2 = {
+                'activity_type_id': 4,
+                'summary': 'Transferencia, Ingreso de invetario:',
+                'automated': True,
+                'note': 'Ha sido asignado para validar la transferenica interna',
+                'date_deadline': fields.datetime.now(),
+                'res_model_id': self.env['ir.model']._get_id('stock.picking'),
+                'res_id': stock_picking2.id,
+                'user_id': picking.warehouse_id.employee_id.user_id.id,
+            }
+            new_activity2 = self.env['mail.activity'].sudo().create(create_activity2)
+            # Escribe el id de la actividad en un campo
+            stock_picking2.write({'activity_id': new_activity2.id})
+        for rec6 in self.order_line:
+            stock_picking3 = self.env['stock.picking'].search([('order_id2', '=', self.ids), ('requisition_id', '=', self.requisition_id.ids),
+                                                                ('picking_type_id', '=', rec6.location_dest_id.warehouse_id.int_type_id.ids),
+                                                                ('location_dest_id', '=', rec6.location_dest_id.ids), ('stage', '=', 2)], limit=1)
+            # Creación de registros necearios para el stock picking move
+            self.write({'x_stock_picking_transit_order_line': [(0, 0, {'stage': 2,
+                                                                       'order_id': self.id,
+                                                                       'purchase_line_id': rec6.id,
+                                                                       'stock_picking_id': stock_picking3.id,
+                                                                       'product_id': rec6.product_id.id,
+                                                                       'picking_type_id': rec6.location_dest_id.warehouse_id.in_type_id.id,
+                                                                       'location_id': rec6.location_id.id,
+                                                                       'transit_location_id': rec6.transit_location_id.id,
+                                                                       'dest_warehouse_id': rec6.warehouse_id.id,
+                                                                       'dest_location_id': rec6.location_dest_id.id,
+                                                                       'account_analytic_id': rec6.account_analytic_id.id,
+                                                                       'quantity': rec6.product_qty,
+                                                                     })]})
+        for rec7 in self.x_stock_picking_transit_order_line:
+            if rec7.stage == 2:
+                create_vals4 = {
+                    'stage': 2,
+                    'origin': self.name,
+                    'purchase_line_id': rec7.purchase_line_id.id,
+                    'name': rec7.stock_picking_id.name,
+                    'picking_id': rec7.stock_picking_id.id,
+                    'product_id': rec7.product_id.id,
+                    'product_uom': 1,
+                    'product_uom_qty': rec7.quantity,
+                    'quantity_done': 0,
+                    'location_id': rec7.transit_location_id.id,
+                    'location_dest_id': rec7.dest_location_id.id,
+                    'date_deadline': fields.datetime.now(),
+                }
+                self.env['stock.move'].sudo().create(create_vals4)
+
+    def get_default_color(self):
+        self._get_default_color()    # seleción de color por estado
+
+    # Color en ordenes de compra
+    def _get_default_color(self):
+        self.update_relate_purchase_order()     # Relación de tag de ordenes de compra con requisiciones
+        if self.state == 'draft':
+            self.write({'color': 4})
+        elif self.state == 'sent':
+            self.write({'color': 2})
+        elif self.state == 'to approve':
+            self.write({'color': 3})
+        elif self.state == 'purchase':
+            self.write({'color': 9})
+        elif self.state == 'done':
+            self.write({'color': 10})
+        elif self.state == 'cancel':
+            self.write({'color': 0})
+
+    color = fields.Integer(string='Color')
+
+    # Actualizar estado requisición
+    @api.onchange('partner_id')
+    def update_state_requisition(self):
+            if self.requisition_id and self.requisition_state == 'assigned' or self.requisition_state == 'open':
+                requisition_state = self.env['purchase.requisition'].search([('id', '=', self.requisition_id.ids)], limit=1)
+                requisition_state.update({
+                    'state': 'open',
+                    'purchase_order_process': True,
+                })
+
+    # relaciona la orden de compra con el campo may2many de requisiciones
+    def update_relate_purchase_order(self):
+        requisition_state = self.env['purchase.requisition'].search([('id', '=', self.requisition_id.ids)], limit=1)
+        requisition_state.update({
+            'purchase_order_many2many': [(4, self.id)],
+        })
 
     # Función que actualiza el responsable de aprobar
     @api.onchange('partner_id')
@@ -38,22 +228,41 @@ class PurchaseOrder(models.Model):
         return self.time_off
 
     # Función del boton confirmar
+    def button_confirm(self):
+        for order in self:
+            if order.state not in ['draft', 'sent']:
+                continue
+            order._add_supplier_to_product()
+            # Deal with double validation process
+            if order._approval_allowed():
+                order.button_approve()
+                order.write({'state': 'to approve', 'color': 3})
+            if order.partner_id not in order.message_partner_ids:
+                order.message_subscribe([order.partner_id.id])
+        return True
+
+    # Función del boton confirmar extend
     def button_confirm_extend(self):
+        self._get_default_color()  # seleción de color por estado
+        # Calcular costo en cuentas analiticas
+        self.compute_account_analytic_cost()
         # código nuevo con condición
         if self.related_requisition == True:
+            self.update_state_requisition()     # Actualizar esatdo a open en la requisición
+            self.update_relate_purchase_order()
             if self.aprove_manager and self.time_off_related == False:
                 for order in self:
                     if order.state not in ['draft', 'sent']:
                         continue
                     order._add_supplier_to_product()
-                    order.write({'state': 'to approve'})
+                    order.write({'state': 'to approve', 'color': 3})
                     # Código que crea una nueva actividad
                     model_id = self.env['ir.model']._get(self._name).id
                     create_vals = {
                         'activity_type_id': 4,
                         'summary': 'Solicitud de compra:',
                         'automated': True,
-                        'note': 'A sido asignado para aprobar la siguiente solicitud de compra',
+                        'note': 'Ha sido asignado para aprobar la siguiente solicitud de compra',
                         'date_deadline': self.current_date.date(),
                         'res_model_id': model_id,
                         'res_id': self.id,
@@ -74,14 +283,14 @@ class PurchaseOrder(models.Model):
                     if order.state not in ['draft', 'sent']:
                         continue
                     order._add_supplier_to_product()
-                    order.write({'state': 'to approve'})
+                    order.write({'state': 'to approve', 'color': 3})
                     # Código que crea una nueva actividad
                     model_id = self.env['ir.model']._get(self._name).id
                     create_vals = {
                         'activity_type_id': 4,
                         'summary': 'Solicitud de compra:',
                         'automated': True,
-                        'note': 'A sido asignado para aprobar la siguiente solicitud de compra, el jefe responsable se encuentra ausente',
+                        'note': 'Ha sido asignado para aprobar la siguiente solicitud de compra, el jefe responsable se encuentra ausente',
                         'date_deadline': self.current_date.date(),
                         'res_model_id': model_id,
                         'res_id': self.id,
@@ -106,7 +315,13 @@ class PurchaseOrder(models.Model):
             # Función por defecto
             self.button_confirm()
 
-    # Función del boton aprobación
+    def button_approve(self, force=False):
+        self = self.filtered(lambda order: order._approval_allowed())
+        self.write({'state': 'purchase', 'date_approve': fields.Datetime.now()})
+        self.filtered(lambda p: p.company_id.po_lock == 'lock').write({'state': 'done'})
+        return {}
+
+    # Función del boton aprobación extend
     def button_approve_extend(self, force=False):
         if self.related_requisition == True:
             if self.env.user.employee_id.general_manager == False and self.env.user.employee_id.active_budget == True:  # Si tiene un tope
@@ -120,6 +335,8 @@ class PurchaseOrder(models.Model):
                         new_activity.action_feedback(feedback='Es aprobado')
                         # Aprueba la orden
                         self.button_approve()
+                        self.write({'color': 9})
+                        self.stock_picking_create_order_line()  # Crea modelo de transición
                     else:
                         # está condición evita que repita aprobación
                         if self.aprove_manager != self.env.user.employee_id.parent_id:
@@ -141,7 +358,7 @@ class PurchaseOrder(models.Model):
                                 'activity_type_id': 4,
                                 'summary': 'aprobación adicional, solicitud de compra:',
                                 'automated': True,
-                                'note': 'A sido asignado para aprobar la siguiente solicitud de compra, debido a que el montón supera la base del jefe a cargo',
+                                'note': 'Ha sido asignado para aprobar la siguiente solicitud de compra, debido a que el montón supera la base del jefe a cargo',
                                 'date_deadline': self.current_date.date(),
                                 'res_model_id': model_id,
                                 'res_id': self.id,
@@ -164,33 +381,95 @@ class PurchaseOrder(models.Model):
                 new_activity.action_feedback(feedback='Es aprobado')
                 # aprobación gerente general
                 self.button_approve()
+                self.stock_picking_create_order_line()  # Crea modelo de transición
+                self.write({'color': 9})
             elif self.env.user.employee_id.active_budget == False:
                 raise UserError('No tiene asignado un monto de presupuesto o activa la opcíón sin tope, por favor comunicarse con el administrador para realizar asignación.')
         # Función de aprobación por defecto
         else:
             self.button_approve()
+            self.stock_picking_create_order_line()  # Crea modelo de transición
+            self.write({'color': 9})
 
     # Botón reestableercer a borrador
+    def button_draft(self):
+        self.write({'x_stock_picking_transit_order_line': [(5)]})  # Limpiar/deslinkear registros del modelo
+        self.write({'state': 'draft', 'color': 4})
+        return {}
+
+    # Botón reestableercer a borrador extend
     def button_draft_extend(self):
-        self.write({'state': 'draft'})
+        self.button_draft()     # Función reestablecer
         # se reestablece el jefe actual
         self.write({'aprove_manager': self.requisition_id.manager_id})
         # se reestablece el jefe actual
         self.write({'manager_before': False})
         # se reestablece el nivel de aprobación
         self.write({'state_aprove': 0})
+        # se reestablece la suma de cuentas x cuentas analiticas
+        self.compute_account_analytic_cost_delete()
         return {}
 
     # Boton cancelar
-    def button_cancel_extend(self):
-        #  Marca actividad como hecha de forma automatica
-        new_activity = self.env['mail.activity'].search([('id', '=', self.activity_id)], limit=1)
-        new_activity.action_feedback(feedback='Es Rechazado')
+    def button_cancel(self):
         for order in self:
             for inv in order.invoice_ids:
                 if inv and inv.state not in ('cancel', 'draft'):
                     raise UserError(_("Unable to cancel this purchase order. You must first cancel the related vendor bills."))
-        self.write({'state': 'cancel', 'mail_reminder_confirmed': False})
+        self.write({'state': 'cancel', 'mail_reminder_confirmed': False, 'color': 0})
+
+    # Boton cancelar extend
+    def button_cancel_extend(self):
+        self.button_cancel()  # Función cancelar
+        #  Marca actividad como hecha de forma automatica
+        new_activity = self.env['mail.activity'].search([('id', '=', self.activity_id)], limit=1)
+        new_activity.action_feedback(feedback='Es Rechazado')
+
+    # Accón contabilidad analítica
+    def button_account_analytic_cost(self):
+        if self.x_account_analytic_cost:
+            return True
+        else:
+            self.compute_account_analytic_cost_delete()
+            self.compute_account_analytic_cost()
+
+    # Función borrar linea
+    def compute_account_analytic_cost_delete(self):
+        self.write({'x_account_analytic_cost': [(5)]})
+
+    # subtotal los centros de costo x centro de costo
+    def compute_account_analytic_cost(self):
+        a = []
+        b = []
+        analytic_cost = 0
+        for rec1 in self.order_line:
+            if rec1.account_analytic_id:
+                a.append(rec1.account_analytic_id.id)
+                b = list(set(a))
+        for rec2 in b:
+            analytic_cost = 0
+            for rec3 in self.order_line:
+                if rec2 == rec3.account_analytic_id.id:
+                    analytic_cost += rec3.price_subtotal
+            self.write({'x_account_analytic_cost': [(0, 0, {'purchase_order_line': rec3.id,
+                                                            'account_analytic_id': rec2,
+                                                            'price_subtotal': analytic_cost,
+                                                            })]})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

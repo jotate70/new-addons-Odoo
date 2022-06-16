@@ -17,6 +17,9 @@
         15.2.0 ticket relationship with requisitions is added
         15.2.1 Restrictions are added in fields
         15.3.0 This versions contains stock movement in two steps, origin location to transit location, transit location to destination location. 
+        15.4.0 Purchase order report and delivery voucher is added.
+        15.5.0 Added option to pay for analytical accounting in stock picking.
+        15.6.0 Automatic stock picking are added in purchase orders by destination location.
         """,
 
     'description': """
@@ -32,11 +35,12 @@
     # any module necessary for this one to work correctly
     'depends': ['purchase_requisition',
                 'hr_holidays',
-                'purchase_stock',
                 'stock',
+                'purchase_stock',
                 'sale_stock',
-                'helpdesk',
+                'helpdesk_ticket_custom',
                 'web_domain_field',
+                'account',
                 ],
 
     # always loaded
@@ -57,6 +61,16 @@
         'views/stock_picking_type_extend_view.xml',
         'views/account_analytic_line_extend_view.xml',
         'views/stock_quant_custom_view.xml',
+        'views/stock_picking_move_line_extend_view.xml',
+        'views/stock_move_line_extend_view.xml',
+        'views/type_stock_picking_view.xml',
+        'views/stock_production_lot_extend_view.xml',
+        'views/stock_plaque_view.xml',
+        'views/purchase_requisition_type_extend_view.xml',
+        'views/product_category_extend.xml',
+        'report/report_purchaseorder_document_extend.xml',
+        'report/report_deliveryslip_extend.xml',
+        'wizard/stock_assign_serial_views_extend.xml',
     ],
 
     'installable': True,

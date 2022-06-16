@@ -3,12 +3,26 @@
 from odoo import api, fields, models, exceptions, _
 from odoo.exceptions import UserError
 
+PURCHASE_REQUISITION_STATES = [
+    ('draft', 'Draft'),
+    ('ongoing', 'Ongoing'),
+    ('in_progress', 'Confirmed'),
+    ('approved', 'Aprobado'),
+    ('assigned', 'Asignado'),
+    ('open', 'Bid Selection'),
+    ('done', 'Closed'),
+    ('cancel', 'Cancelled')
+]
+
 class purchase_requisition_extend(models.Model):
     _inherit = 'purchase.requisition'
 
+    state = fields.Selection(PURCHASE_REQUISITION_STATES,
+                             'Status', tracking=True, required=True,
+                             copy=False, default='draft')
+    state_blanket_order = fields.Selection(PURCHASE_REQUISITION_STATES, compute='_set_state')
     department_id = fields.Many2one(comodel_name='hr.department', related='user_id.department_id',
                                    string='Departamento', store=True)
-
     manager_id = fields.Many2one(comodel_name='hr.employee', related='user_id.department_id.manager_id', string='Jefe del área',
                              help='Jefe inmediato respondable de su aprobación')
     manager2_id = fields.Many2one(comodel_name='hr.employee', related='manager_id.parent_id', string='Aprobación alternativa',
@@ -35,11 +49,30 @@ class purchase_requisition_extend(models.Model):
     len_id = fields.Integer(string='longitud', store=False)
     x_stock_picking_transit = fields.One2many(comodel_name='stock_picking_transit', inverse_name='requisition_id',
                                   string='Stock picking transitorio')
+    assignees_id = fields.Many2one(comodel_name='res.users', string='Asignado', store=True, readonly=False,
+                                   tracking=True,
+                                   domain=lambda self: [
+                                       ('groups_id', 'in', self.env.ref('purchase.group_purchase_user').id)])
+    picking_type_id = fields.Many2one('stock.picking.type', 'Operation Type', required=True,
+                                      domain="[('warehouse_id.company_id', '=', company_id), ('code', '=', 'incoming'), ('available_requisition', '=', True)]")
+    purchase_order_process = fields.Boolean(string='En proceso', domain=lambda self: [
+                                            ('groups_id', 'in', self.env.ref('purchase.group_purchase_user').id)],
+                                            help='Indica si tiene una orden compra asociada')
+    purchase_order_many2many = fields.Many2many(comodel_name='purchase.order',
+                                        relation='x_purchase_order_purchase_requisition_rel',
+                                        column1='purchase_requisition_id', column2='purchase_order_id',
+                                        string='Ordenes de compra')
 
-    # Función boton refrescar
+    # Fecha de pedido con fecha de creación
+    @api.onchange('line_ids')
+    def _compute_ordering_date(self):
+        self.ordering_date = fields.datetime.now()
+
+    # Función boton refrescar disponibilidad
     def action_show_picking(self):
         for rec in self.line_ids:
             rec.compute_qty_available_location()
+        self.update_purchase_requisition_line()  # Función que actualiza las cantidades disponibles en productos repetidos
 
     # Acción de button tranferencia inmediata
     def action_stock_picking_create(self):
@@ -48,6 +81,7 @@ class purchase_requisition_extend(models.Model):
         a = len(comprob.ids)
         if a == 0:
             self.write({'x_stock_picking_transit': [(5)]})  # Limpiar/deslinkear registros del modelo
+            self.action_show_picking()      # Función boton refrescar disponibilidad
             self.update_purchase_requisition_line()  # Función que actualiza las cantidades disponibles en productos repetidos
             self._stock_picking_create()    # Función que genera las tranferencias dependiedo las ubicaciones a mover
             self.association_stock_picking()    # Función asociar stock pickink padre
@@ -112,7 +146,7 @@ class purchase_requisition_extend(models.Model):
     def stock_picking_transit_unlink(self):
         self.write({'x_stock_picking_transit': [(5)]})
 
-    # Función que genera las tranferencias dependiedo las ubicaciones a mover
+    # Función que genera las tranferencias en dos pasos ubicación origen --> transito y transito --> destino
     def _stock_picking_create(self):
         if self.line_ids:
             # variables
@@ -137,6 +171,7 @@ class purchase_requisition_extend(models.Model):
 
             # generación stock pickin de ubicación de origen a ubicación transición
             if long > 0: # comprueba si etiste una cantidad asignada para cantidad en inventario
+                self.write({'state': 'open'})   # Cambio de estado
                 for l2 in transit_stock:
                     transit_stock_picking = self.env['stock.location'].search([('id', '=', l2)], limit=1)
                     create_vals = {'stage': 1,
@@ -146,6 +181,7 @@ class purchase_requisition_extend(models.Model):
                                    'location_id': transit_stock_picking.warehouse_id.lot_stock_id.id,
                                    'picking_type_id': transit_stock_picking.warehouse_id.int_type_id.id,
                                    'location_dest_id': transit_stock_picking.transit_location_id.id,
+                                   'currency_id': self.currency_id.id,
                                    }
                     stock_picking_id = self.env['stock.picking'].sudo().create(create_vals)
                     #self.write({'line_ids': [(1, stock_picking_id.id, {'state': 'assigned'})]})
@@ -155,7 +191,7 @@ class purchase_requisition_extend(models.Model):
                             'activity_type_id': 4,
                             'summary': 'Transferencia, ubicación de origen a transito:',
                             'automated': True,
-                            'note': 'A sido asignado para validar la transferencia inmediata',
+                            'note': 'Ha sido asignado para validar la transferencia inmediata',
                             'date_deadline': fields.datetime.now(),
                             'res_model_id': self.env['ir.model']._get_id('stock.picking'),
                             'res_id': stock_picking_id.id,
@@ -235,7 +271,6 @@ class purchase_requisition_extend(models.Model):
                             'product_uom': 1,
                             'product_uom_qty': l3.quantity,
                             'quantity_done': 0,
-                            'description_picking': l3.name_picking,
                             'location_id': l3.origin_location_id.id,
                             'location_dest_id': l3.transit_location_id.id,
                             'date_deadline': self.date_end,
@@ -255,6 +290,7 @@ class purchase_requisition_extend(models.Model):
                                    'location_id': dest_stock_picking.transit_location_id.id,
                                    'picking_type_id': dest_stock_picking.dest_warehouse_id.int_type_id.id,
                                    'location_dest_id': dest_stock_picking.dest_location_id.id,
+                                   'currency_id': self.currency_id.id,
                                    }
                     stock_picking_id = self.env['stock.picking'].sudo().create(create_vals)
                     # Código que crea una nueva actividad
@@ -263,7 +299,7 @@ class purchase_requisition_extend(models.Model):
                             'activity_type_id': 4,
                             'summary': 'Transferencia, ubicación de transito a destino:',
                             'automated': True,
-                            'note': 'A sido asignado para validar la transferencia inmediata',
+                            'note': 'Ha sido asignado para validar la transferencia inmediata',
                             'date_deadline': fields.datetime.now(),
                             'res_model_id': self.env['ir.model']._get_id('stock.picking'),
                             'res_id': stock_picking_id.id,
@@ -335,7 +371,6 @@ class purchase_requisition_extend(models.Model):
                                         'product_uom': 1,
                                         'product_uom_qty': rec6.quantity,
                                         'quantity_done': 0,
-                                        'description_picking': rec6.name_picking,
                                         'location_id': rec6.origin_location_id.id,
                                         'location_dest_id': rec6.dest_location_id.id,
                                         'date_deadline': self.date_end,
@@ -400,6 +435,10 @@ class purchase_requisition_extend(models.Model):
         #  Marca actividad como hecha de forma automatica
         new_activity = self.env['mail.activity'].search([('id', '=', self.activity_id)], limit=1)
         new_activity.action_feedback(feedback='Es rechazado')
+        # Update state cancel stock_picking
+        #for rec in self.purchase_ids2:
+        #    if rec.requisition_id == self.id:
+        #        self.write({'purchase_id': [(1, rec.id, {'state': 'cancel'})]})
 
     # función botón cancelar extendida
     def action_cancel_extend(self):
@@ -421,6 +460,7 @@ class purchase_requisition_extend(models.Model):
     # función del boton validar
     def action_in_progress_extend(self):
         if self.manager_id or self.user_id.employee_id.general_manager == True:
+            self.action_show_picking()  # Función boton refrescar disponibilidad
             self.update_purchase_requisition_line()  # Función que actualiza las cantidades disponibles en productos repetidos
             self._verification_requisition_line()       # Función de verificación de lineas de requisición
             self.ensure_one()
@@ -434,46 +474,50 @@ class purchase_requisition_extend(models.Model):
                         raise UserError(_('You cannot confirm the blanket order without quantity.'))
                     requisition_line.create_supplier_info()
                 self.write({'state': 'ongoing'})
-            #     Crear actividad al jefe inmediato si esta disponible
-            elif self.manager_id and self.time_off_related == False:
-                self.write({'state': 'in_progress'})
-                # suscribe el contacto que es gerente del representante del proveedor en acuerdos de compra
-                self.message_subscribe(self.manager_id.user_id.partner_id.ids)
-                # Código que crea una nueva actividad
-                model_id = self.env['ir.model']._get(self._name).id
-                create_vals = {
-                    'activity_type_id': 4,
-                    'summary': 'Acuerdo de compra:',
-                    'automated': True,
-                    'note': 'A sido asignado para aprobar el siguiente acuerdo de compra',
-                    'date_deadline': self.current_date.date(),
-                    'res_model_id': model_id,
-                    'res_id': self.id,
-                    'user_id': self.manager_id.user_id.id
-                }
-                new_activity = self.env['mail.activity'].create(create_vals)
-                # Escribe el id de la actividad en un campo
-                self.write({'activity_id': new_activity})
-            #     Crear actividad al jefe del jefe inmediato si esta ausente
-            elif self.manager_id and self.time_off_related == True:
-                self.write({'state': 'in_progress'})
-                # suscribe el contacto que es gerente del representante del proveedor en acuerdos de compra
-                self.message_subscribe(self.manager2_id.user_id.partner_id.ids)
-                # Código que crea una nueva actividad
-                model_id = self.env['ir.model']._get(self._name).id
-                create_vals = {
-                    'activity_type_id': 4,
-                    'summary': 'Acuerdo de compra:',
-                    'automated': True,
-                    'note': 'A sido asignado para aprobar el siguiente acuerdo de compra, el jefe responsable se encuentra ausente',
-                    'date_deadline': self.current_date.date(),
-                    'res_model_id': model_id,
-                    'res_id': self.id,
-                    'user_id': self.manager2_id.user_id.id
-                }
-                new_activity = self.env['mail.activity'].create(create_vals)
-                # Escribe el id de la actividad en un campo
-                self.write({'activity_id': new_activity})
+            # Comprueba el tipo de acuerdo de compra, si requiere o no requiere acuerdo de compra
+            elif self.type_id.disable_approval == False:
+                #     Crear actividad al jefe inmediato si esta disponible
+                if self.manager_id and self.time_off_related == False:
+                    self.write({'state': 'in_progress'})
+                    # suscribe el contacto que es gerente del representante del proveedor en acuerdos de compra
+                    self.message_subscribe(self.manager_id.user_id.partner_id.ids)
+                    # Código que crea una nueva actividad
+                    model_id = self.env['ir.model']._get(self._name).id
+                    create_vals = {
+                        'activity_type_id': 4,
+                        'summary': 'Acuerdo de compra:',
+                        'automated': True,
+                        'note': 'Ha sido asignado para aprobar el siguiente acuerdo de compra',
+                        'date_deadline': self.current_date.date(),
+                        'res_model_id': model_id,
+                        'res_id': self.id,
+                        'user_id': self.manager_id.user_id.id
+                    }
+                    new_activity = self.env['mail.activity'].create(create_vals)
+                    # Escribe el id de la actividad en un campo
+                    self.write({'activity_id': new_activity})
+                #     Crear actividad al jefe del jefe inmediato si esta ausente
+                elif self.manager_id and self.time_off_related == True:
+                    self.write({'state': 'in_progress'})
+                    # suscribe el contacto que es gerente del representante del proveedor en acuerdos de compra
+                    self.message_subscribe(self.manager2_id.user_id.partner_id.ids)
+                    # Código que crea una nueva actividad
+                    model_id = self.env['ir.model']._get(self._name).id
+                    create_vals = {
+                        'activity_type_id': 4,
+                        'summary': 'Acuerdo de compra:',
+                        'automated': True,
+                        'note': 'Ha sido asignado para aprobar el siguiente acuerdo de compra, el jefe responsable se encuentra ausente',
+                        'date_deadline': self.current_date.date(),
+                        'res_model_id': model_id,
+                        'res_id': self.id,
+                        'user_id': self.manager2_id.user_id.id
+                    }
+                    new_activity = self.env['mail.activity'].create(create_vals)
+                    # Escribe el id de la actividad en un campo
+                    self.write({'activity_id': new_activity})
+            else:
+                self.write({'state': 'approved'})
             # Set the sequence number regarding the requisition type / Agrega la secuencia de acuerdo de compra
             if self.name == 'New':
                 if self.is_quantity_copy != 'none':
@@ -485,11 +529,12 @@ class purchase_requisition_extend(models.Model):
 
     # Función del boton aprobación, y tambien puede aprobar el jefe inmediato si no se encuentra el responsable de aprobación
     def action_approve(self):
+        self.action_show_picking()  # Función boton refrescar disponibilidad
         self._verification_requisition_line()       # Función de verificación de lineas de requisición
         self.update_purchase_requisition_line()  # Función que actualiza las cantidades disponibles en productos repetidos
         if (self.manager_id.user_id == self.env.user and self.manager_id.active_budget == True) or (self.manager2_id.user_id == self.env.user and self.time_off_related == True):
             # Cambio de etapa
-            self.write({'state': 'open'})
+            self.write({'state': 'approved'})
             #  Marca actividad como hecha de forma automatica
             new_activity = self.env['mail.activity'].search([('id', '=', self.activity_id)], limit=1)
             new_activity.action_feedback(feedback='Es aprobado')
@@ -511,11 +556,47 @@ class purchase_requisition_extend(models.Model):
             else:
                 raise UserError('Existen lienas que no tienen almacen/ubicación de destino')
 
+    # función que cambia de estado asignado a estado de selección
+    @api.onchange('assignees_id')
+    def action_state_assigned_to_open(self):
+        if self.assignees_id:
+            self.write({'state': 'assigned'})
+        else:
+            return
+
     # función que llama función confirmar en stock picking
     def call_action_confirm(self):
         for rec in self.purchase_ids2:
             if rec.stage == 1:
                 rec.action_confirm()
+
+    # Extención de función cerrar
+    def action_done(self):
+        """
+        Generate all purchase order based on selected lines, should only be called on one agreement at a time
+        """
+        if any(stock_picking.state in ['draft', 'waiting', 'confirmed', 'assigned'] for stock_picking in
+               self.mapped('purchase_ids2')):
+            raise UserError('Debes terminar o cancelar antes el stock picking.')
+
+        if any(purchase_order.state in ['draft', 'sent', 'to approve'] for purchase_order in self.mapped('purchase_ids')):
+            raise UserError(_('You have to cancel or validate every RfQ before closing the purchase requisition.'))
+        for requisition in self:
+            for requisition_line in requisition.line_ids:
+                requisition_line.supplier_info_ids.unlink()
+        self.write({'state': 'done'})
+
+    # función cambio de estado
+    def update_state_open_requisition(self):
+        self.write({'state': 'open'})  # Cambio de estado
+
+    #     Boton establecer a borrador
+    def action_draft(self):
+        self.ensure_one()
+        self.name = 'New'
+        self.write({'state': 'draft'})
+        self.write({'assignees_id': False})
+
 
 
 

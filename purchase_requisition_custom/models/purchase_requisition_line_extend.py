@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime, time
 
 from odoo import api, fields, models
 import json
@@ -6,14 +7,13 @@ import json
 class purchase_requisition_line_extend(models.Model):
     _inherit = 'purchase.requisition.line'
 
+    image_product = fields.Binary(string='Imagen', related='product_id.image_1920')
     product_qty = fields.Float(string='Quantity', digits='Product Unit of Measure', compute='_compute_product_qty')
-
     available_quantity_total = fields.Float(string='Stock', related='product_id.free_qty',
                                  help='Muestra la cantidad disponible que está sin reservar')
-
-    qty_location = fields.Float(string='Disponible',
+    qty_location = fields.Float(string='Disponible', store=True,
                                  help='Muestra la cantidad disponible en la ubicación selecionada del producto')
-    location = fields.Many2one(comodel_name='location_warehouse', string='Locación', store=True,
+    location = fields.Many2one(comodel_name='location_warehouse', string='Locación',
                                                help='Muestra la ubicación de la ciudad/locación del producto',
                                                )
     location_id_domain = fields.Char(compute="_compute_location_stock_picking", readonly=True, store=False)
@@ -35,6 +35,9 @@ class purchase_requisition_line_extend(models.Model):
     warehouse_id = fields.Many2one(comodel_name='stock.warehouse', string='A almacen',
                                    domain="[('usage', '=', 'supplier'), ('available_requisition', '=', 'True')]", help='Almacen a mover')
     observations = fields.Text(string='Observaciones')
+    x_project = fields.Many2one(comodel_name='helpdesk_project', string='Proyecto',
+                                help='El proyecto está relacionado con su respectivo centro de costo')
+    account_analytic_id = fields.Many2one('account.analytic.account', string='Analytic Account')
 
     # Contabilidad analítica
     @api.onchange('default_location_dest_id')
@@ -91,10 +94,58 @@ class purchase_requisition_line_extend(models.Model):
             else:
                 rec2.product_qty = 0
 
-    # Función que calcula la cantidad a comprar
+    # Función concatena la descripción del rpoducto en la descripción
     @api.onchange('product_id')
     def _related_product_description_variants(self):
-        self.write({'product_description_variants': self.product_id.description_picking})
+        for rec in self.product_id:
+            if rec.description_purchase:
+                a = rec.description_purchase
+            else:
+                a = ''
+            result = '[' + str(rec.default_code) + '] ' + str(rec.name) + ' - ' + str(a)
+            self.write({'product_description_variants': result})
+
+    # Prepara las lineas de puchase order line
+    def _prepare_purchase_order_line(self, name, product_qty=0.0, price_unit=0.0, taxes_ids=False):
+        # Determina la ubicación de transito por defecto en ordenes de compra
+        virtual_transit_location = self.env['stock.location'].search(
+            [('usage', '=', 'transit'), ('id', '=', self.product_id.categ_id.location_id.ids),
+             ('location_id.location_id2', '=', self.default_location_dest_id.location_id2.ids)], limit=1)
+        if virtual_transit_location:
+            a = virtual_transit_location
+        else:
+            location = self.env['stock.location'].search(
+                [('usage', '=', 'transit'), ('id', '=', self.product_id.categ_id.location_default.ids)],
+                limit=1)
+            a = location
+
+        # Optiene lineas para ordenes de compra
+        self.ensure_one()
+        requisition = self.requisition_id
+        if self.product_description_variants:
+            name += '\n' + self.product_description_variants
+        if requisition.schedule_date:
+            date_planned = datetime.combine(requisition.schedule_date, time.min)
+        else:
+            date_planned = datetime.now()
+        return {
+            'name': name,
+            'product_id': self.product_id.id,
+            'product_uom': self.product_id.uom_po_id.id,
+            'product_qty': product_qty,
+            'price_unit': price_unit,
+            'taxes_id': [(6, 0, taxes_ids)],
+            'date_planned': date_planned,
+            'account_analytic_id': self.account_analytic_id.id,
+            'analytic_tag_ids': self.analytic_tag_ids.ids,
+            'warehouse_id': self.warehouse_id,
+            'transit_location_id': a,
+            'location_dest_id': self.default_location_dest_id,
+        }
+
+
+
+
 
 
 
