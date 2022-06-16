@@ -63,7 +63,7 @@ class purchase_requisition_extend(models.Model):
                                         column1='purchase_requisition_id', column2='purchase_order_id',
                                         string='Ordenes de compra')
 
-    # escribir de pedido con la de creación
+    # Fecha de pedido con fecha de creación
     @api.onchange('line_ids')
     def _compute_ordering_date(self):
         self.ordering_date = fields.datetime.now()

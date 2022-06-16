@@ -25,6 +25,12 @@
         <xpath expr="//field[@name='sequence']" position="after">
           <field name="image_product" optional="show" options="{&quot;size&quot;:[0,90]}" widget="image"/>
         </xpath>
+        <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/tree[1]/field[@name='name']" position="after">
+          <field name="location_id" optional="hide"/>
+          <field name="warehouse_id" optional="hide"/>
+          <field name="transit_location_id" optional="hide"/>
+          <field name="location_dest_id" optional="hide"/>
+        </xpath>
         <xpath expr="//form[1]/sheet[1]/notebook[1]" position="inside">
           <page string="Contabilidad analítica" name="account_analytic_page">
               <field name="x_account_analytic_cost" widget="one2many" readonly="">

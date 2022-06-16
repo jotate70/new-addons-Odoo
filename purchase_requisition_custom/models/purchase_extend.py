@@ -81,7 +81,7 @@ class PurchaseOrder(models.Model):
                                                                        'product_id': rec3.product_id.id,
                                                                        'picking_type_id': rec3.location_dest_id.warehouse_id.in_type_id.id,
                                                                        'location_id': rec3.location_id.id,
-                                                                       'transit_location_id': rec3.warehouse_id.transit_location_id.id,
+                                                                       'transit_location_id': rec3.transit_location_id.id,
                                                                        'dest_warehouse_id': rec3.warehouse_id.id,
                                                                        'dest_location_id': rec3.location_dest_id.id,
                                                                        'account_analytic_id': rec3.account_analytic_id.id,
@@ -147,13 +147,12 @@ class PurchaseOrder(models.Model):
                                                                        'product_id': rec6.product_id.id,
                                                                        'picking_type_id': rec6.location_dest_id.warehouse_id.in_type_id.id,
                                                                        'location_id': rec6.location_id.id,
-                                                                       'transit_location_id': rec6.warehouse_id.transit_location_id.id,
+                                                                       'transit_location_id': rec6.transit_location_id.id,
                                                                        'dest_warehouse_id': rec6.warehouse_id.id,
                                                                        'dest_location_id': rec6.location_dest_id.id,
                                                                        'account_analytic_id': rec6.account_analytic_id.id,
                                                                        'quantity': rec6.product_qty,
                                                                      })]})
-
         for rec7 in self.x_stock_picking_transit_order_line:
             if rec7.stage == 2:
                 create_vals4 = {
@@ -166,8 +165,8 @@ class PurchaseOrder(models.Model):
                     'product_uom': 1,
                     'product_uom_qty': rec7.quantity,
                     'quantity_done': 0,
-                    'location_id': rec7.location_id.id,
-                    'location_dest_id': rec7.transit_location_id.id,
+                    'location_id': rec7.transit_location_id.id,
+                    'location_dest_id': rec7.dest_location_id.id,
                     'date_deadline': fields.datetime.now(),
                 }
                 self.env['stock.move'].sudo().create(create_vals4)

@@ -107,6 +107,19 @@ class purchase_requisition_line_extend(models.Model):
 
     # Prepara las lineas de puchase order line
     def _prepare_purchase_order_line(self, name, product_qty=0.0, price_unit=0.0, taxes_ids=False):
+        # Determina la ubicación de transito por defecto en ordenes de compra
+        virtual_transit_location = self.env['stock.location'].search(
+            [('usage', '=', 'transit'), ('id', '=', self.product_id.categ_id.location_id.ids),
+             ('location_id.location_id2', '=', self.default_location_dest_id.location_id2.ids)], limit=1)
+        if virtual_transit_location:
+            a = virtual_transit_location
+        else:
+            location = self.env['stock.location'].search(
+                [('usage', '=', 'transit'), ('id', '=', self.product_id.categ_id.location_default.ids)],
+                limit=1)
+            a = location
+
+        # Optiene lineas para ordenes de compra
         self.ensure_one()
         requisition = self.requisition_id
         if self.product_description_variants:
@@ -126,8 +139,11 @@ class purchase_requisition_line_extend(models.Model):
             'account_analytic_id': self.account_analytic_id.id,
             'analytic_tag_ids': self.analytic_tag_ids.ids,
             'warehouse_id': self.warehouse_id,
+            'transit_location_id': a,
             'location_dest_id': self.default_location_dest_id,
         }
+
+
 
 
 
