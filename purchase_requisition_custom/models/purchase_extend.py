@@ -1,6 +1,5 @@
 from odoo import fields, models, api, _
 from odoo.exceptions import UserError
-from random import randint
 
 class PurchaseOrder(models.Model):
     _inherit = 'purchase.order'
@@ -14,7 +13,7 @@ class PurchaseOrder(models.Model):
     aprove_manager2 = fields.Many2one(comodel_name='hr.employee',
                                   string='Aprobación alternativa',
                                   help='Cuando el jefe inmediato se encuentra ausente, debe aprobar el siguiente respondable')
-    representative_user = fields.Many2one(comodel_name='res.users', string='Representante del Proveedor',
+    representative_user = fields.Many2one(comodel_name='res.users', string='Representante del Proveedor', store=True,
                                           related='requisition_id.user_id', help='Usuario que solicita el acuerdo de compra')
     activity_id = fields.Integer(string='id actividad')
     # Obtiene la fecha y hora actual
@@ -39,18 +38,21 @@ class PurchaseOrder(models.Model):
         l = []
         a = []
         for rec1 in self.order_line:
-            l.append(rec1.location_dest_id.id)
-            a = list(set(l))
+            if rec1.transit_location_id:
+                l.append(rec1.location_dest_id.id)
+                a = list(set(l))
+            else:
+                raise UserError('No se ha establecido una ubicación de tránsito en la categoría de productos.')
         for rec2 in a:
             picking = self.env['purchase.order.line'].search([('location_dest_id', '=', rec2), ('order_id', '=', self.ids)], limit=1)
             create_vals = {'stage': 1,
+                           'partner_id': self.partner_id.id,
                            'order_id2': self.id,
                            'origin': self.name,
                            'scheduled_date': self.date_planned,
-                           'picking_type_id': picking.location_dest_id.warehouse_id.in_type_id.id,
+                           'picking_type_id': picking.transit_location_id.warehouse_id.in_type_id.id,
                            'location_id': picking.location_id.id,
                            'location_dest_id': picking.transit_location_id.id,
-                           'currency_id': self.env.company.currency_id.id,
                            'requisition_id': self.requisition_id.id,
                            'currency_id': self.currency_id.id,
                         }
@@ -69,6 +71,7 @@ class PurchaseOrder(models.Model):
             new_activity1 = self.env['mail.activity'].sudo().create(create_activity)
             # Escribe el id de la actividad en un campo
             stock_picking1.write({'activity_id': new_activity1.id})
+        picking_ids = []
         for rec3 in self.order_line:
             stock_picking2 = self.env['stock.picking'].search([('order_id2', '=', self.ids), ('requisition_id', '=', self.requisition_id.ids),
                                                                 ('picking_type_id', '=', rec3.location_dest_id.warehouse_id.in_type_id.ids),
@@ -79,7 +82,7 @@ class PurchaseOrder(models.Model):
                                                                        'purchase_line_id': rec3.id,
                                                                        'stock_picking_id': stock_picking2.id,
                                                                        'product_id': rec3.product_id.id,
-                                                                       'picking_type_id': rec3.location_dest_id.warehouse_id.in_type_id.id,
+                                                                       'picking_type_id': rec3.transit_location_id.warehouse_id.in_type_id.id,
                                                                        'location_id': rec3.location_id.id,
                                                                        'transit_location_id': rec3.transit_location_id.id,
                                                                        'dest_warehouse_id': rec3.warehouse_id.id,
@@ -104,19 +107,23 @@ class PurchaseOrder(models.Model):
                     'date_deadline': fields.datetime.now(),
                 }
                 self.env['stock.move'].sudo().create(create_vals2)
-        # --------------------------------------   Etapa 2 -------------------------------------------------------
+        # Confirma stock picking en etapa 1
+        for rect in self.picking_ids:
+            if rect.stage == 1:
+                rect.action_confirm()
+
+        # -------------------------------------------   Etapa 2 -------------------------------------------------------
         for rec5 in a:
             picking2 = self.env['stock_picking_transit_order_line'].search([('dest_location_id', '=', rec5), ('order_id', '=', self.ids)], limit=1)
             create_vals3 = {'stage': 2,
+                            'partner_id': self.partner_id.id,
                             'order_id2': self.id,
                             'origin': picking2.stock_picking_id.name,
-                            'parent_stock_pic'
-                            'king': picking2.stock_picking_id.id,
+                            'parent_stock_picking': picking2.stock_picking_id.id,
                             'scheduled_date': self.date_planned,
                             'picking_type_id': picking2.dest_location_id.warehouse_id.int_type_id.id,
                             'location_id': picking2.transit_location_id.id,
                             'location_dest_id': picking2.dest_location_id.id,
-                            'currency_id': self.env.company.currency_id.id,
                             'requisition_id': self.requisition_id.id,
                             'currency_id': self.currency_id.id,
                             }
@@ -238,6 +245,14 @@ class PurchaseOrder(models.Model):
                 order.message_subscribe([order.partner_id.id])
         return True
 
+    # Función del boton confirmar sin requisición
+    def button_confirm2(self):
+        for order in self:
+            if order.state not in ['draft', 'sent']:
+                continue
+            order.write({'state': 'to approve', 'color': 3})
+        return True
+
     # Función del boton confirmar extend
     def button_confirm_extend(self):
         self._get_default_color()  # seleción de color por estado
@@ -245,7 +260,7 @@ class PurchaseOrder(models.Model):
         self.compute_account_analytic_cost()
         # código nuevo con condición
         if self.related_requisition == True:
-            self.update_state_requisition()     # Actualizar esatdo a open en la requisición
+            self.update_state_requisition()  # Actualizar esatdo a open en la requisición
             self.update_relate_purchase_order()
             if self.aprove_manager and self.time_off_related == False:
                 for order in self:
@@ -333,7 +348,8 @@ class PurchaseOrder(models.Model):
                         # Aprueba la orden
                         self.button_approve()
                         self.write({'color': 9})
-                        self.stock_picking_create_order_line()  # Crea modelo de transición
+                        if self.requisition_id:
+                            self.stock_picking_create_order_line()  # Crea modelo de transición
                     else:
                         # está condición evita que repita aprobación
                         if self.aprove_manager != self.env.user.employee_id.parent_id:
@@ -378,15 +394,17 @@ class PurchaseOrder(models.Model):
                 new_activity.action_feedback(feedback='Es aprobado')
                 # aprobación gerente general
                 self.button_approve()
-                self.stock_picking_create_order_line()  # Crea modelo de transición
+                if self.requisition_id:
+                    self.stock_picking_create_order_line()  # Crea modelo de transición
                 self.write({'color': 9})
             elif self.env.user.employee_id.active_budget == False:
                 raise UserError('No tiene asignado un monto de presupuesto o activa la opcíón sin tope, por favor comunicarse con el administrador para realizar asignación.')
         # Función de aprobación por defecto
         else:
             self.button_approve()
-            self.stock_picking_create_order_line()  # Crea modelo de transición
             self.write({'color': 9})
+            if self.requisition_id:
+                self.stock_picking_create_order_line()  # Crea modelo de transición
 
     # Botón reestableercer a borrador
     def button_draft(self):

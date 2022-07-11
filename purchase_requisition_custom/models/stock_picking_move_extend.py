@@ -42,6 +42,27 @@ class stock_picking_extend(models.Model):
                                 help='Indica la fecha que se realiza el contrato asociada a dicha transferencia')
     currency_id = fields.Many2one(comodel_name='res.currency', string='Currency', related='picking_id.currency_id')
 
+    # Restricción de placas repetidas en la tranferencia
+    @api.constrains('move_line_nosuggest_ids')
+    def _compute_constrains_plaque1(self):
+        for rec in self:
+            exist_lines = []
+            for line in rec.move_line_nosuggest_ids:
+                if line.plaque_id:
+                    if line.plaque_id.id in exist_lines:
+                        raise UserError('La placa %s ya se encuentra en la lista.' % line.plaque_id.name)
+                    exist_lines.append(line.plaque_id.id)
+
+    @api.constrains('move_line_ids')
+    def _compute_constrains_plaque2(self):
+        for rec in self:
+            exist_lines = []
+            for line in rec.move_line_ids:
+                if line.plaque_id:
+                    if line.plaque_id.id in exist_lines:
+                        raise UserError('La placa %s ya se encuentra en la lista.' % line.plaque_id.name)
+                    exist_lines.append(line.plaque_id.id)
+
     @api.depends('order_line.price_total')
     def _amount_all(self):
         for order in self:

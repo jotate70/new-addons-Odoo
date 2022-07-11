@@ -39,8 +39,28 @@ class stock_picking_extend(models.Model):
                                     help='Indica la fecha que se realiza el contrato asociada a dicha transferencia')
     currency_id = fields.Many2one(comodel_name='res.currency', string='Moneda', required=True)
     order_id2 = fields.Many2one(comodel_name='purchase.order', string='Order Reference transit', index=True,
-                                required=True,
                                 ondelete='cascade')
+
+    # Restricción de placas repetidas en la tranferencia
+    @api.constrains('move_line_nosuggest_ids')
+    def _compute_constrains_plaque1(self):
+        for rec in self:
+            exist_lines = []
+            for line in rec.move_line_nosuggest_ids:
+                if line.plaque_id:
+                    if line.plaque_id.id in exist_lines:
+                        raise UserError('La placa %s ya se encuentra en la lista.' % line.plaque_id.name)
+                    exist_lines.append(line.plaque_id.id)
+
+    @api.constrains('move_line_ids_without_package')
+    def _compute_constrains_plaque2(self):
+        for rec in self:
+            exist_lines = []
+            for line in rec.move_line_ids_without_package:
+                if line.plaque_id:
+                    if line.plaque_id.id in exist_lines:
+                        raise UserError('La placa %s ya se encuentra en la lista.' % line.plaque_id.name)
+                    exist_lines.append(line.plaque_id.id)
 
     # seleciona divisa por defecto
     @api.onchange('picking_type_id')
@@ -64,57 +84,68 @@ class stock_picking_extend(models.Model):
 
     # Se crea apuntes analítico
     def compute_account_analytic_cost(self):
+        # Multi moneda
+        monetary = self.env['res.currency'].search([('id', '=', self.currency_id.ids)],
+                                                   order='id DESC', limit=1)
+        # Condición para solo registrar apuntes analiticos donde no existe ordenes de compra y venta
+        # Permite determinar si el importe es negativo o positivo (debita/acredita) mediante el tipo de operación
+        if self.code == 'internal':
+            a = 1
+        elif self.code == 'outgoing':
+            a = -1
+        elif self.code == 'incoming':
+            a = 1
+
         if self.account_analytic_id:
-            # Multi moneda
-            monetary = self.env['res.currency'].search([('id', '=', self.currency_id.ids)],
-                                                            order='id DESC', limit=1)
-            # Condición para solo registrar apuntes analiticos donde no existe ordenes de compra y venta
-            if self.purchase_id:
-                return True
-            elif self.sale_id:
-                return True
-            else:
-                # Permite determinar si el importe es negativo o positivo (debita/acredita) mediante el tipo de operación
-                if self.code == 'internal':
-                    a = 1
-                elif self.code == 'outgoing':
-                    a = 1
-                elif self.code == 'incoming':
-                    a = -1
-                # Crea apunte analítico a mover
+            # Crea apunte analítico a mover
+            for rec in self.move_ids_without_package:
+                create_account_analytic = {
+                    'name': rec.description_picking,
+                    'account_id': rec.account_analytic_id.id,
+                    'partner_id': self.partner_id.id,
+                    'date': fields.datetime.now(),
+                    'company_id': self.env.company.id,
+                    'amount': (rec.standard_price_t*a)/monetary.rate,
+                    'unit_amount': rec.product_uom_qty,
+                    'product_id': rec.product_id.id,
+                    'product_uom_id': rec.product_uom.id,
+                    'stock_picking_line_id': rec.id,
+                }
+                self.env['account.analytic.line'].sudo().create(create_account_analytic)
+            # Crea apunte analítico de contrapartida recibo
+            if self.code == 'internal':
                 for rec in self.move_ids_without_package:
-                    create_account_analytic = {
+                    create_account_analytic2 = {
                         'name': rec.description_picking,
-                        'account_id': rec.account_analytic_id.id,
+                        'account_id': rec.location_id.account_analytic_id.id,
                         'partner_id': self.partner_id.id,
                         'date': fields.datetime.now(),
                         'company_id': self.env.company.id,
-                        'amount': (rec.standard_price_t*a)/monetary.rate,
+                        'amount': -(rec.standard_price_t * a) / monetary.rate,
                         'unit_amount': rec.product_uom_qty,
                         'product_id': rec.product_id.id,
                         'product_uom_id': rec.product_uom.id,
                         'stock_picking_line_id': rec.id,
                     }
-                    self.env['account.analytic.line'].sudo().create(create_account_analytic)
-                # Crea apunte analítico de contrapartida
-                if self.code != 'incoming':
-                    for rec in self.move_ids_without_package:
-                        create_account_analytic2 = {
-                            'name': rec.description_picking,
-                            'account_id': rec.location_id.account_analytic_id.id,
-                            'partner_id': self.partner_id.id,
-                            'date': fields.datetime.now(),
-                            'company_id': self.env.company.id,
-                            'amount': -(rec.standard_price_t * a) / monetary.rate,
-                            'unit_amount': rec.product_uom_qty,
-                            'product_id': rec.product_id.id,
-                            'product_uom_id': rec.product_uom.id,
-                            'stock_picking_line_id': rec.id,
-                        }
-                        self.env['account.analytic.line'].sudo().create(create_account_analytic2)
+                    self.env['account.analytic.line'].sudo().create(create_account_analytic2)
+            # Crea apunte analítico de contrapartida recibo
+        if self.code == 'outgoing':
+            for rec in self.move_ids_without_package:
+                create_account_analytic3 = {
+                    'name': rec.description_picking,
+                    'account_id': rec.location_id.account_analytic_id.id,
+                    'partner_id': self.partner_id.id,
+                    'date': fields.datetime.now(),
+                    'company_id': self.env.company.id,
+                    'amount': (rec.standard_price_t * a) / monetary.rate,
+                    'unit_amount': rec.product_uom_qty,
+                    'product_id': rec.product_id.id,
+                    'product_uom_id': rec.product_uom.id,
+                    'stock_picking_line_id': rec.id,
+                }
+                self.env['account.analytic.line'].sudo().create(create_account_analytic3)
         else:
             return True
-
 
     # Actualización de la función del boton como por hacer
     def action_confirm(self):

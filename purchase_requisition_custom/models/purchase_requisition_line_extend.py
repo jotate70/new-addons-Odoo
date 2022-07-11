@@ -94,16 +94,19 @@ class purchase_requisition_line_extend(models.Model):
             else:
                 rec2.product_qty = 0
 
-    # Función concatena la descripción del rpoducto en la descripción
+    # Función concatena la descripción del producto en la descripción
     @api.onchange('product_id')
     def _related_product_description_variants(self):
         for rec in self.product_id:
             if rec.description_purchase:
                 a = rec.description_purchase
+                b = ' - '
             else:
                 a = ''
-            result = '[' + str(rec.default_code) + '] ' + str(rec.name) + ' - ' + str(a)
+                b = ''
+            result = '[' + str(rec.default_code) + '] ' + str(rec.name) + b + str(a)
             self.write({'product_description_variants': result})
+
 
     # Prepara las lineas de puchase order line
     def _prepare_purchase_order_line(self, name, product_qty=0.0, price_unit=0.0, taxes_ids=False):
@@ -123,7 +126,10 @@ class purchase_requisition_line_extend(models.Model):
         self.ensure_one()
         requisition = self.requisition_id
         if self.product_description_variants:
-            name += '\n' + self.product_description_variants
+            if self.product_description_variants == self.product_id.display_name:
+                name += '\n'
+            else:
+                name += '\n'
         if requisition.schedule_date:
             date_planned = datetime.combine(requisition.schedule_date, time.min)
         else:

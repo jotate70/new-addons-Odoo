@@ -23,7 +23,7 @@ class stock_warehouse_extend(models.Model):
     code = fields.Char('Short Name', required=True, size=8, help="Short name used to identify your warehouse")
     transit_location_id_domain = fields.Char(compute='_domain_transit_location_id', readonly=True, store=False)
     transit_location_id = fields.Many2one(comodel_name='stock.location', string='Ubicación de transito',
-                                          help='Solo se permite una ubicación de transito por almacen')
+                                          help='Solo se permite una ubicación de transito por almacen interno')
     transit_location = fields.Boolean(string='Ubicación de transito', compute='_compute_transit_location',
                                       help='Solo se permite una ubicación de transito por almacen', readonly=True)
 
@@ -56,4 +56,7 @@ class stock_warehouse_extend(models.Model):
             c = c + 1
             if c > 1:
                 raise UserError('Solo puede asociar un usuario por almacen')
+
+
+
 

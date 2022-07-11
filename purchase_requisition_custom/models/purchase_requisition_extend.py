@@ -63,6 +63,16 @@ class purchase_requisition_extend(models.Model):
                                         column1='purchase_requisition_id', column2='purchase_order_id',
                                         string='Ordenes de compra')
 
+    # Restricción de fecha anterior a la actual en fecha limite
+    @api.onchange('date_end')
+    def _compute_coinstrain_ordering_date(self):
+        for rec in self:
+            if rec.date_end and rec.ordering_date:
+                expired = fields.Date.from_string(rec.date_end) - fields.Date.from_string(fields.datetime.now())
+                if expired.days < 0:
+                    raise UserError('No puedes colocar una fecha anterior a la actual')
+
+
     # Fecha de pedido con fecha de creación
     @api.onchange('line_ids')
     def _compute_ordering_date(self):
@@ -87,7 +97,7 @@ class purchase_requisition_extend(models.Model):
             self.association_stock_picking()    # Función asociar stock pickink padre
             self.stock_picking_transit_unlink()   # Función que deslinkea todas las lienas stock picking transit
         elif a > 0:
-            raise UserError('Existen tranferencias inmediatas asociadas,si desea realizar una nueva transferencia debe eliminar las existentes')
+            raise UserError('Existen tranferencias internas asociadas,si desea realizar una nueva transferencia debe eliminar las existentes')
         return True
 
     # Actualización de estado de stock picking de la  etapa 1
@@ -179,7 +189,7 @@ class purchase_requisition_extend(models.Model):
                                    'origin': self.name,
                                    'scheduled_date': self.date_end,
                                    'location_id': transit_stock_picking.warehouse_id.lot_stock_id.id,
-                                   'picking_type_id': transit_stock_picking.warehouse_id.int_type_id.id,
+                                   'picking_type_id': transit_stock_picking.transit_location_id.warehouse_id.int_type_id.id,
                                    'location_dest_id': transit_stock_picking.transit_location_id.id,
                                    'currency_id': self.currency_id.id,
                                    }
@@ -237,7 +247,7 @@ class purchase_requisition_extend(models.Model):
                                                                         'stock_picking_id': ontner_stock_picking.id,
                                                                         'product_id': rec1.product_id.id,
                                                                         'product_description_variants': rec1.product_description_variants,
-                                                                        'picking_type_id': rec2.location_id.warehouse_id.in_type_id.id,
+                                                                        'picking_type_id': rec2.transit_location_id.warehouse_id.in_type_id.id,
                                                                         'origin_location': rec1.location.id,
                                                                         'origin_warehouse_id': rec2.location_id.warehouse_id.id,
                                                                         'origin_location_id': rec2.location_id.id,
@@ -276,6 +286,10 @@ class purchase_requisition_extend(models.Model):
                             'date_deadline': self.date_end,
                         }
                         self.env['stock.move'].sudo().create(create_vals2)
+            # Confirma stock picking en etapa 1
+                for rect in self.purchase_ids2:
+                    if rect.stage == 1:
+                        rect.action_confirm()
 
             # ------------------------------------------- PASO 2 ------------------------------------------
             c = 0

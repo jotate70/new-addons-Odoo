@@ -21,7 +21,6 @@ class StockQuant(models.Model):
     contract_date_end = fields.Date(string='Finalización de contrato',
                                 help='Indica la fecha que se realiza el contrato asociada a dicha transferencia')
     product_category_id = fields.Many2one(comodel_name='product.category', name='Categoria de producto', related='product_id.categ_id', store=True)
-
     usage = fields.Selection([
         ('supplier', 'Almacen Cliente'),
         ('internal', 'Almacen Interno'),
