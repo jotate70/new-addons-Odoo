@@ -40,11 +40,13 @@ class WebsiteHelpdesk(main.WebsiteHelpdesk):
         partner_id = request.env.user.partner_id
         #new
         helpdesk_family = request.env['helpdesk_family'].sudo().search([])
+        ticket_type_id = request.env['helpdesk.ticket.type'].sudo().search([])
         #result['partner_name'] = partner_values.get('name')
         result['partner_id'] = partner_id
         result['helpdesk_family'] = helpdesk_family
-        if partner_id.x_project:
-            result['projects'] = partner_id.x_project
+        result['ticket_type_id'] = ticket_type_id
+        if partner_id.project:
+            result['projects'] = partner_id.project
         else:
             result['projects'] = []
         return request.render("website_helpdesk.team", result)
