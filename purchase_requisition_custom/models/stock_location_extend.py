@@ -14,3 +14,4 @@ class purchase_requisition_line_extend(models.Model):
     transit_location_id = fields.Many2one(comodel_name='stock.location', string='Ubicación de transito',
                                           related='warehouse_id.transit_location_id',
                                           help='Solo se permite una ubicación de transito por almacen')
+

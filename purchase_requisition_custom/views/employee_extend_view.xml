@@ -12,6 +12,7 @@
               <group string="Presupuesto asignado">
                 <field name="active_budget"/>
                 <field name="general_manager" attrs="{'invisible': [('active_budget', '=', False)]}"/>
+                <field name="parent_optional_id" attrs="{'invisible': [('general_manager', '=', False)]}"/>
                 <field name="budget"
                        attrs="{'invisible': ['|', ('general_manager', '=', True), ('active_budget', '=', False)]}"/>
               </group>

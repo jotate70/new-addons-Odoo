@@ -19,6 +19,7 @@
                     <field name="picking_type_id" options="{'no_create':true, 'no_open':true}"
                            optional="hide" invisible="1"/>
                     <field name="warehouse_id" options="{'no_create':true, 'no_open':true}" required="1"/>
+                    <field name="transit_location_id" optional="hide"/>
                     <field name="location_dest_id_domain" invisible="1"/>
                     <field name="default_location_dest_id" options="{'no_create':true, 'no_open':true}" domain="location_dest_id_domain" required="1"/>
                     <field name="product_qty2"/>

@@ -23,14 +23,14 @@ class stock_warehouse_extend(models.Model):
     code = fields.Char('Short Name', required=True, size=8, help="Short name used to identify your warehouse")
     transit_location_id_domain = fields.Char(compute='_domain_transit_location_id', readonly=True, store=False)
     transit_location_id = fields.Many2one(comodel_name='stock.location', string='Ubicación de transito',
-                                          help='Solo se permite una ubicación de transito por almacen')
+                                          help='Solo se permite una ubicación de transito por almacen interno')
     transit_location = fields.Boolean(string='Ubicación de transito', compute='_compute_transit_location',
                                       help='Solo se permite una ubicación de transito por almacen', readonly=True)
 
     # Función reestablecer campo available_requisition
     @api.onchange('usage')
     def _reset_available_requisition(self):
-        if self.usage != 'supplier':
+        if self.usage == 'customer':
             self.available_requisition = False
 
     # Función que aplica filtro dinamico
@@ -38,7 +38,7 @@ class stock_warehouse_extend(models.Model):
     def _domain_transit_location_id(self):
         for rec in self:
             rec.transit_location_id_domain = json.dumps(
-                [('warehouse_id', '=', self.ids), ('usage', '=', 'transit')])
+                [('location_id.warehouse_id', '=', self.ids), ('usage', '=', 'transit')])
 
     # validación limite para asociar almacen
     @api.depends('transit_location_id')
@@ -56,4 +56,28 @@ class stock_warehouse_extend(models.Model):
             c = c + 1
             if c > 1:
                 raise UserError('Solo puede asociar un usuario por almacen')
+
+    # Create transit location and warehouse related
+    @api.onchange('location_id', 'usage')
+    def _create_location_transit_id(self):
+        if self.transit_location_id:
+            return
+        else:
+            transit_location = self.env['stock.location'].search([('usage', '=', 'transit'),
+                                                                  ('location_id', '=', self.view_location_id.ids)], limit=1)
+            if transit_location:
+                return
+            else:
+                create_vals = {'name': 'Transit',
+                               'location_id': self.view_location_id.id,
+                               'usage': 'transit',
+                               'warehouse_id': self.id,
+                               }
+                self.env['stock.location'].create(create_vals)
+
+
+
+
+
+
 

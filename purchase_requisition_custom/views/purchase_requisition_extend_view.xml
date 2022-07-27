@@ -60,7 +60,7 @@
       <menuitem name="Configuración"
                 id="menu_purchase_requisition_setting"
                 parent="menu_purchase_requisition_root"
-                groups="purchase.group_purchase_manager"/>
+                groups="purchase.group_purchase_manager"
                 sequence="13"/>
 
       <!--Supplier menu-->
@@ -85,7 +85,7 @@
                 action="action_window_purchase_requisition_incoming" sequence="4"/>
 
       <menuitem name="Tipo de acuerdo de compra"
-                id="supplier_menu_purchase_incoming"
+                id="supplier_menu_purchase_requistion_type"
                 parent="menu_purchase_requisition_setting"
                 action="action_window_purchase_requisition_setting" sequence="5"/>
 
@@ -154,7 +154,7 @@
               <xpath expr="//header" position="replace">
                   <header>
                       <!--         draft state           -->
-                      <!-- <button name="stock_picking_transit_unlink" string="Unlink" type="object" class="btn-primary"/> -->
+                      <button name="action_notification" string="Notify" type="object" class="btn-primary"/>
                       <button name="action_in_progress_extend" states="draft" string="Confirmar" type="object" class="btn-primary"
                               confirm="¿Desea confirmar este acuerdo de compra?"/>
                       <!--         	in progress state           -->
@@ -198,6 +198,9 @@
                   </button>
               </xpath>
               <!--        campos             -->
+              <xpath expr="//field[@name='user_id']" position="attributes">
+                <attribute name="string">Representante de requisición</attribute>
+              </xpath>
               <xpath expr="//field[@name='user_id']" position="before">
                   <field name="assignees_id" groups="purchase.group_purchase_user" states="approved,assigned,open,done"/>
               </xpath>
@@ -277,6 +280,9 @@
           <field name="model">purchase.requisition</field>
           <field name="inherit_id" ref='purchase_requisition.view_purchase_requisition_tree'/>
           <field name="arch" type="xml">
+              <xpath expr="//field[@name='user_id']" position="attributes">
+                <attribute name="string">Representante de requisición</attribute>
+              </xpath>
               <xpath expr="//field[@name='origin']" position="after">
                   <field name="assignees_id"/>
               </xpath>

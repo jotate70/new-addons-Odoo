@@ -26,7 +26,7 @@
         <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='operations']/field[@name='move_ids_without_package']/tree[1]/field[@name='product_uom']" position="after">
           <field name="standard_price" optional="hide"/>
           <field name="standard_price_t" widget="monetary" optional="hide"/>
-          <field name="fee_unit" optional="show" attrs="{'readonly': [('picking_code', '=', 'incoming')]}" />
+          <field name="fee_unit" optional="show"/>
           <field name="fee_subtotal" optional="show"/>
           <field name="contract_date" optional="show" invisible="1"/>
           <field name="contract_date_end" optional="show" invisible="1"/>

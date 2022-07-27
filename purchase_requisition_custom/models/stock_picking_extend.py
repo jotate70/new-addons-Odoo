@@ -37,10 +37,35 @@ class stock_picking_extend(models.Model):
                                 help='Indica la fecha que se realiza el contrato asociada a dicha transferencia')
     contract_date_end = fields.Date(string='Finalización de contrato',
                                     help='Indica la fecha que se realiza el contrato asociada a dicha transferencia')
-    currency_id = fields.Many2one(comodel_name='res.currency', string='Moneda', required=True)
+    currency_id = fields.Many2one(comodel_name='res.currency', string='Moneda')
     order_id2 = fields.Many2one(comodel_name='purchase.order', string='Order Reference transit', index=True,
-                                required=True,
                                 ondelete='cascade')
+    warehouse_manager = fields.Many2many(comodel_name='hr.employee', relation='x_hr_employee_stock_warehouse_rel',
+                                         column1='stock_warehouse_id', column2='hr_employee_id',
+                                         string='Responsable de almacen',
+                                         related='picking_type_id.default_location_dest_id.warehouse_id.employee_id')
+    act = fields.Char(string='No. Acta', help='El campo se utilza para relacionar los consecutivos de los números de stock picking, con la actas fisicas de movimiento de inventario')
+
+    # Restricción de placas repetidas en la tranferencia
+    @api.constrains('move_line_nosuggest_ids')
+    def _compute_constrains_plaque1(self):
+        for rec in self:
+            exist_lines = []
+            for line in rec.move_line_nosuggest_ids:
+                if line.plaque_id:
+                    if line.plaque_id.id in exist_lines:
+                        raise UserError('La placa %s ya se encuentra en la lista.' % line.plaque_id.name)
+                    exist_lines.append(line.plaque_id.id)
+
+    @api.constrains('move_line_ids_without_package')
+    def _compute_constrains_plaque2(self):
+        for rec in self:
+            exist_lines = []
+            for line in rec.move_line_ids_without_package:
+                if line.plaque_id:
+                    if line.plaque_id.id in exist_lines:
+                        raise UserError('La placa %s ya se encuentra en la lista.' % line.plaque_id.name)
+                    exist_lines.append(line.plaque_id.id)
 
     # seleciona divisa por defecto
     @api.onchange('picking_type_id')
@@ -64,57 +89,68 @@ class stock_picking_extend(models.Model):
 
     # Se crea apuntes analítico
     def compute_account_analytic_cost(self):
+        # Multi moneda
+        monetary = self.env['res.currency'].search([('id', '=', self.currency_id.ids)],
+                                                   order='id DESC', limit=1)
+        # Condición para solo registrar apuntes analiticos donde no existe ordenes de compra y venta
+        # Permite determinar si el importe es negativo o positivo (debita/acredita) mediante el tipo de operación
+        if self.code == 'internal':
+            a = 1
+        elif self.code == 'outgoing':
+            a = -1
+        elif self.code == 'incoming':
+            a = 1
+
         if self.account_analytic_id:
-            # Multi moneda
-            monetary = self.env['res.currency'].search([('id', '=', self.currency_id.ids)],
-                                                            order='id DESC', limit=1)
-            # Condición para solo registrar apuntes analiticos donde no existe ordenes de compra y venta
-            if self.purchase_id:
-                return True
-            elif self.sale_id:
-                return True
-            else:
-                # Permite determinar si el importe es negativo o positivo (debita/acredita) mediante el tipo de operación
-                if self.code == 'internal':
-                    a = 1
-                elif self.code == 'outgoing':
-                    a = 1
-                elif self.code == 'incoming':
-                    a = -1
-                # Crea apunte analítico a mover
+            # Crea apunte analítico a mover
+            for rec in self.move_ids_without_package:
+                create_account_analytic = {
+                    'name': rec.product_id.name,
+                    'account_id': rec.account_analytic_id.id,
+                    'partner_id': self.partner_id.id,
+                    'date': fields.datetime.now(),
+                    'company_id': self.env.company.id,
+                    'amount': (rec.standard_price_t*a)/monetary.rate,
+                    'unit_amount': rec.product_uom_qty,
+                    'product_id': rec.product_id.id,
+                    'product_uom_id': rec.product_uom.id,
+                    'stock_picking_line_id': rec.id,
+                }
+                self.env['account.analytic.line'].sudo().create(create_account_analytic)
+            # Crea apunte analítico de contrapartida recibo
+            if self.code == 'internal':
                 for rec in self.move_ids_without_package:
-                    create_account_analytic = {
-                        'name': rec.description_picking,
-                        'account_id': rec.account_analytic_id.id,
+                    create_account_analytic2 = {
+                        'name': rec.product_id.name,
+                        'account_id': rec.location_id.account_analytic_id.id,
                         'partner_id': self.partner_id.id,
                         'date': fields.datetime.now(),
                         'company_id': self.env.company.id,
-                        'amount': (rec.standard_price_t*a)/monetary.rate,
+                        'amount': -(rec.standard_price_t * a) / monetary.rate,
                         'unit_amount': rec.product_uom_qty,
                         'product_id': rec.product_id.id,
                         'product_uom_id': rec.product_uom.id,
                         'stock_picking_line_id': rec.id,
                     }
-                    self.env['account.analytic.line'].sudo().create(create_account_analytic)
-                # Crea apunte analítico de contrapartida
-                if self.code != 'incoming':
-                    for rec in self.move_ids_without_package:
-                        create_account_analytic2 = {
-                            'name': rec.description_picking,
-                            'account_id': rec.location_id.account_analytic_id.id,
-                            'partner_id': self.partner_id.id,
-                            'date': fields.datetime.now(),
-                            'company_id': self.env.company.id,
-                            'amount': -(rec.standard_price_t * a) / monetary.rate,
-                            'unit_amount': rec.product_uom_qty,
-                            'product_id': rec.product_id.id,
-                            'product_uom_id': rec.product_uom.id,
-                            'stock_picking_line_id': rec.id,
-                        }
-                        self.env['account.analytic.line'].sudo().create(create_account_analytic2)
+                    self.env['account.analytic.line'].sudo().create(create_account_analytic2)
+            # Crea apunte analítico de contrapartida recibo
+        if self.code == 'outgoing':
+            for rec in self.move_ids_without_package:
+                create_account_analytic3 = {
+                    'name': rec.product_id.name,
+                    'account_id': rec.location_id.account_analytic_id.id,
+                    'partner_id': self.partner_id.id,
+                    'date': fields.datetime.now(),
+                    'company_id': self.env.company.id,
+                    'amount': (rec.standard_price_t * a) / monetary.rate,
+                    'unit_amount': rec.product_uom_qty,
+                    'product_id': rec.product_id.id,
+                    'product_uom_id': rec.product_uom.id,
+                    'stock_picking_line_id': rec.id,
+                }
+                self.env['account.analytic.line'].sudo().create(create_account_analytic3)
         else:
             return True
-
 
     # Actualización de la función del boton como por hacer
     def action_confirm(self):
@@ -148,10 +184,6 @@ class stock_picking_extend(models.Model):
 
             # run scheduler for moves forecasted to not have enough in stock
             self.mapped('move_lines').filtered(lambda move: move.state not in ('draft', 'cancel', 'done'))._trigger_scheduler()
-
-            #  Marca actividad como hecha de forma automatica
-            new_activity = self.env['mail.activity'].search([('id', '=', self.activity_id)], limit=1)
-            new_activity.action_feedback(feedback='Es confirmada')
             return True
 
     def button_validate(self):
@@ -247,7 +279,44 @@ class stock_picking_extend(models.Model):
             rec.lot_id.compute_plaque_id()
         # Crea registro de cuenta analiticas
         self.compute_account_analytic_cost()
+        # state onchange of validate stock picking
+        if self.stage == 1:
+            self.compute_stage_stock_picking_transit()
+        #  Marca actividad como hecha de forma automatica
+        new_activity = self.env['mail.activity'].search([('id', '=', self.activity_id)], limit=1)
+        new_activity.action_feedback(feedback='Es confirmada')
         return True
+
+    # función que pasa ha estado preparado para stock picking de 2 estapa
+    def compute_stage_stock_picking_transit(self):
+        if self.requisition_id:
+            picking = self.env['stock.picking'].search([('stage', '=', 2),
+                                                        ('origin', '=', self.name)])
+            for rec in picking:
+                rec.action_confirm()
+                # Código que crea una nueva actividad
+                if rec.location_dest_id.warehouse_id.employee_id:
+                    create_activity = {
+                        'activity_type_id': 4,
+                        'summary': 'Transferencia, ubicación de transito a destino:',
+                        'automated': True,
+                        'note': 'Ha sido asignado para validar la transferencia inmediata',
+                        'date_deadline': fields.datetime.now(),
+                        'res_model_id': self.env['ir.model']._get_id('stock.picking'),
+                        'res_id': rec.id,
+                        'user_id': rec.location_dest_id.warehouse_id.employee_id.user_id.id,
+                    }
+                    new_activity = self.env['mail.activity'].sudo().create(create_activity)
+                    # Escribe el id de la actividad en un campo
+                    rec.write({'activity_id': new_activity.id})
+                else:
+                    raise UserError('Se debe selecionar un encargado de almacen para poder asignar una tarea.')
+        else:
+            return True
+
+
+
+
 
 
 

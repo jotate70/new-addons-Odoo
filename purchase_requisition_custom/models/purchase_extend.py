@@ -1,6 +1,5 @@
 from odoo import fields, models, api, _
 from odoo.exceptions import UserError
-from random import randint
 
 class PurchaseOrder(models.Model):
     _inherit = 'purchase.order'
@@ -14,7 +13,7 @@ class PurchaseOrder(models.Model):
     aprove_manager2 = fields.Many2one(comodel_name='hr.employee',
                                   string='Aprobación alternativa',
                                   help='Cuando el jefe inmediato se encuentra ausente, debe aprobar el siguiente respondable')
-    representative_user = fields.Many2one(comodel_name='res.users', string='Representante del Proveedor',
+    representative_user = fields.Many2one(comodel_name='res.users', string='Representante de requisición', store=True,
                                           related='requisition_id.user_id', help='Usuario que solicita el acuerdo de compra')
     activity_id = fields.Integer(string='id actividad')
     # Obtiene la fecha y hora actual
@@ -32,28 +31,31 @@ class PurchaseOrder(models.Model):
                                related='picking_type_id.default_location_dest_id.warehouse_id.employee_id.mobile_phone')
     x_stock_picking_transit_order_line = fields.One2many(comodel_name='stock_picking_transit_order_line', inverse_name='order_id',
                                                          string='Stock picking transitorio_order_line')
+    stock_picking_ids = fields.One2many(comodel_name='stock.picking', inverse_name='purchase_id', string='Recepciones')
 
-    # Crea modelo de transición
+    # Create stock pickings
     def stock_picking_create_order_line(self):
-        # --------------------------------------   Etapa 1 -------------------------------------------------------
+        # --------------------------------------   Stage 1 -------------------------------------------------------
         l = []
         a = []
         for rec1 in self.order_line:
-            if rec1.transit_location_id:
-                l.append(rec1.location_dest_id.id)
-                a = list(set(l))
-            else:
-                raise UserError('No se ha establecido una ubicación de tránsito en la categoría de productos.')
+            # Condición para solo tipos de procutos almacenable y consubles
+            if rec1.product_id.detailed_type != 'service':
+                if rec1.transit_location_id:
+                    l.append(rec1.location_dest_id.id)
+                    a = list(set(l))
+                else:
+                    raise UserError('No se ha establecido una ubicación de tránsito en la categoría de productos.')
         for rec2 in a:
             picking = self.env['purchase.order.line'].search([('location_dest_id', '=', rec2), ('order_id', '=', self.ids)], limit=1)
             create_vals = {'stage': 1,
+                           'partner_id': self.partner_id.id,
                            'order_id2': self.id,
                            'origin': self.name,
                            'scheduled_date': self.date_planned,
-                           'picking_type_id': picking.location_dest_id.warehouse_id.in_type_id.id,
+                           'picking_type_id': picking.transit_location_id.warehouse_id.in_type_id.id,
                            'location_id': picking.location_id.id,
                            'location_dest_id': picking.transit_location_id.id,
-                           'currency_id': self.env.company.currency_id.id,
                            'requisition_id': self.requisition_id.id,
                            'currency_id': self.currency_id.id,
                         }
@@ -72,24 +74,27 @@ class PurchaseOrder(models.Model):
             new_activity1 = self.env['mail.activity'].sudo().create(create_activity)
             # Escribe el id de la actividad en un campo
             stock_picking1.write({'activity_id': new_activity1.id})
+        picking_ids = []
         for rec3 in self.order_line:
-            stock_picking2 = self.env['stock.picking'].search([('order_id2', '=', self.ids), ('requisition_id', '=', self.requisition_id.ids),
-                                                                ('picking_type_id', '=', rec3.location_dest_id.warehouse_id.in_type_id.ids),
-                                                                ('location_dest_id', '=', rec3.transit_location_id.ids), ('stage', '=', 1)], limit=1)
-            # Creación de registros necearios para el stock picking move
-            self.write({'x_stock_picking_transit_order_line': [(0, 0, {'stage': 1,
-                                                                       'order_id': self.id,
-                                                                       'purchase_line_id': rec3.id,
-                                                                       'stock_picking_id': stock_picking2.id,
-                                                                       'product_id': rec3.product_id.id,
-                                                                       'picking_type_id': rec3.location_dest_id.warehouse_id.in_type_id.id,
-                                                                       'location_id': rec3.location_id.id,
-                                                                       'transit_location_id': rec3.transit_location_id.id,
-                                                                       'dest_warehouse_id': rec3.warehouse_id.id,
-                                                                       'dest_location_id': rec3.location_dest_id.id,
-                                                                       'account_analytic_id': rec3.account_analytic_id.id,
-                                                                       'quantity': rec3.product_qty,
-                                                                    })]})
+            if rec3.product_id.detailed_type != 'service':
+                stock_picking2 = self.env['stock.picking'].search([('order_id2', '=', self.ids), ('requisition_id', '=', self.requisition_id.ids),
+                                                                    ('picking_type_id', '=', rec3.transit_location_id.warehouse_id.in_type_id.ids),
+                                                                    ('location_dest_id', '=', rec3.transit_location_id.ids), ('stage', '=', 1)], limit=1)
+                # Creación de registros necearios para el stock picking move
+                self.write({'x_stock_picking_transit_order_line': [(0, 0, {'stage': 1,
+                                                                           'order_id': self.id,
+                                                                           'purchase_line_id': rec3.id,
+                                                                           'stock_picking_id': stock_picking2.id,
+                                                                           'product_id': rec3.product_id.id,
+                                                                           'picking_type_id': rec3.transit_location_id.warehouse_id.in_type_id.id,
+                                                                           'location_id': rec3.location_id.id,
+                                                                           'transit_location_id': rec3.transit_location_id.id,
+                                                                           'dest_warehouse_id': rec3.warehouse_id.id,
+                                                                           'dest_location_id': rec3.location_dest_id.id,
+                                                                           'account_analytic_id': rec3.account_analytic_id.id,
+                                                                           'quantity': rec3.product_qty,
+                                                                           'product_uom': rec3.product_uom.id,
+                                                                        })]})
         for rec4 in self.x_stock_picking_transit_order_line:
             if rec4.stage == 1:
                 create_vals2 = {
@@ -99,7 +104,7 @@ class PurchaseOrder(models.Model):
                     'name': rec4.stock_picking_id.name,
                     'picking_id': rec4.stock_picking_id.id,
                     'product_id': rec4.product_id.id,
-                    'product_uom': 1,
+                    'product_uom': rec4.product_uom.id,
                     'product_uom_qty': rec4.quantity,
                     'quantity_done': 0,
                     'location_id': rec4.location_id.id,
@@ -107,55 +112,47 @@ class PurchaseOrder(models.Model):
                     'date_deadline': fields.datetime.now(),
                 }
                 self.env['stock.move'].sudo().create(create_vals2)
-        # --------------------------------------   Etapa 2 -------------------------------------------------------
+        # Confirma stock picking en etapa 1
+        for rect in self.picking_ids:
+            if rect.stage == 1:
+                rect.action_confirm()
+
+        # -------------------------------------------   Stage 2 -------------------------------------------------------
         for rec5 in a:
             picking2 = self.env['stock_picking_transit_order_line'].search([('dest_location_id', '=', rec5), ('order_id', '=', self.ids)], limit=1)
             create_vals3 = {'stage': 2,
+                            'partner_id': self.partner_id.id,
                             'order_id2': self.id,
                             'origin': picking2.stock_picking_id.name,
-                            'parent_stock_pic'
-                            'king': picking2.stock_picking_id.id,
+                            'parent_stock_picking': picking2.stock_picking_id.id,
                             'scheduled_date': self.date_planned,
                             'picking_type_id': picking2.dest_location_id.warehouse_id.int_type_id.id,
                             'location_id': picking2.transit_location_id.id,
                             'location_dest_id': picking2.dest_location_id.id,
-                            'currency_id': self.env.company.currency_id.id,
                             'requisition_id': self.requisition_id.id,
                             'currency_id': self.currency_id.id,
                             }
-            stock_picking2 = self.env['stock.picking'].create(create_vals3)
-            # Código que crea una nueva actividad
-            create_activity2 = {
-                'activity_type_id': 4,
-                'summary': 'Transferencia, Ingreso de invetario:',
-                'automated': True,
-                'note': 'Ha sido asignado para validar la transferenica interna',
-                'date_deadline': fields.datetime.now(),
-                'res_model_id': self.env['ir.model']._get_id('stock.picking'),
-                'res_id': stock_picking2.id,
-                'user_id': picking.warehouse_id.employee_id.user_id.id,
-            }
-            new_activity2 = self.env['mail.activity'].sudo().create(create_activity2)
-            # Escribe el id de la actividad en un campo
-            stock_picking2.write({'activity_id': new_activity2.id})
+            self.env['stock.picking'].create(create_vals3)
         for rec6 in self.order_line:
-            stock_picking3 = self.env['stock.picking'].search([('order_id2', '=', self.ids), ('requisition_id', '=', self.requisition_id.ids),
-                                                                ('picking_type_id', '=', rec6.location_dest_id.warehouse_id.int_type_id.ids),
-                                                                ('location_dest_id', '=', rec6.location_dest_id.ids), ('stage', '=', 2)], limit=1)
-            # Creación de registros necearios para el stock picking move
-            self.write({'x_stock_picking_transit_order_line': [(0, 0, {'stage': 2,
-                                                                       'order_id': self.id,
-                                                                       'purchase_line_id': rec6.id,
-                                                                       'stock_picking_id': stock_picking3.id,
-                                                                       'product_id': rec6.product_id.id,
-                                                                       'picking_type_id': rec6.location_dest_id.warehouse_id.in_type_id.id,
-                                                                       'location_id': rec6.location_id.id,
-                                                                       'transit_location_id': rec6.transit_location_id.id,
-                                                                       'dest_warehouse_id': rec6.warehouse_id.id,
-                                                                       'dest_location_id': rec6.location_dest_id.id,
-                                                                       'account_analytic_id': rec6.account_analytic_id.id,
-                                                                       'quantity': rec6.product_qty,
-                                                                     })]})
+            if rec6.product_id.detailed_type != 'service':
+                stock_picking4 = self.env['stock.picking'].search([('order_id2', '=', self.ids), ('requisition_id', '=', self.requisition_id.ids),
+                                                                    ('picking_type_id', '=', rec6.location_dest_id.warehouse_id.int_type_id.ids),
+                                                                    ('location_dest_id', '=', rec6.location_dest_id.ids), ('stage', '=', 2)], limit=1)
+                # Creación de registros necearios para el stock picking move
+                self.write({'x_stock_picking_transit_order_line': [(0, 0, {'stage': 2,
+                                                                           'order_id': self.id,
+                                                                           'purchase_line_id': rec6.id,
+                                                                           'stock_picking_id': stock_picking4.id,
+                                                                           'product_id': rec6.product_id.id,
+                                                                           'picking_type_id': rec6.location_dest_id.warehouse_id.in_type_id.id,
+                                                                           'location_id': rec6.location_id.id,
+                                                                           'transit_location_id': rec6.transit_location_id.id,
+                                                                           'dest_warehouse_id': rec6.warehouse_id.id,
+                                                                           'dest_location_id': rec6.location_dest_id.id,
+                                                                           'account_analytic_id': rec6.account_analytic_id.id,
+                                                                           'quantity': rec6.product_qty,
+                                                                           'product_uom': rec6.product_uom.id,
+                                                                         })]})
         for rec7 in self.x_stock_picking_transit_order_line:
             if rec7.stage == 2:
                 create_vals4 = {
@@ -165,7 +162,7 @@ class PurchaseOrder(models.Model):
                     'name': rec7.stock_picking_id.name,
                     'picking_id': rec7.stock_picking_id.id,
                     'product_id': rec7.product_id.id,
-                    'product_uom': 1,
+                    'product_uom': rec7.product_uom.id,
                     'product_uom_qty': rec7.quantity,
                     'quantity_done': 0,
                     'location_id': rec7.transit_location_id.id,
@@ -241,6 +238,14 @@ class PurchaseOrder(models.Model):
                 order.message_subscribe([order.partner_id.id])
         return True
 
+    # Función del boton confirmar sin requisición
+    def button_confirm2(self):
+        for order in self:
+            if order.state not in ['draft', 'sent']:
+                continue
+            order.write({'state': 'to approve', 'color': 3})
+        return True
+
     # Función del boton confirmar extend
     def button_confirm_extend(self):
         self._get_default_color()  # seleción de color por estado
@@ -248,7 +253,7 @@ class PurchaseOrder(models.Model):
         self.compute_account_analytic_cost()
         # código nuevo con condición
         if self.related_requisition == True:
-            self.update_state_requisition()     # Actualizar esatdo a open en la requisición
+            self.update_state_requisition()  # Actualizar esatdo a open en la requisición
             self.update_relate_purchase_order()
             if self.aprove_manager and self.time_off_related == False:
                 for order in self:
@@ -336,7 +341,8 @@ class PurchaseOrder(models.Model):
                         # Aprueba la orden
                         self.button_approve()
                         self.write({'color': 9})
-                        self.stock_picking_create_order_line()  # Crea modelo de transición
+                        if self.requisition_id:
+                            self.stock_picking_create_order_line()  # Crea modelo de transición solo cuando existe requisición
                     else:
                         # está condición evita que repita aprobación
                         if self.aprove_manager != self.env.user.employee_id.parent_id:
@@ -381,15 +387,17 @@ class PurchaseOrder(models.Model):
                 new_activity.action_feedback(feedback='Es aprobado')
                 # aprobación gerente general
                 self.button_approve()
-                self.stock_picking_create_order_line()  # Crea modelo de transición
+                if self.requisition_id:
+                    self.stock_picking_create_order_line()  # Crea modelo de transición solo cuando existe requisición
                 self.write({'color': 9})
             elif self.env.user.employee_id.active_budget == False:
                 raise UserError('No tiene asignado un monto de presupuesto o activa la opcíón sin tope, por favor comunicarse con el administrador para realizar asignación.')
         # Función de aprobación por defecto
         else:
             self.button_approve()
-            self.stock_picking_create_order_line()  # Crea modelo de transición
             self.write({'color': 9})
+            if self.requisition_id:
+                self.stock_picking_create_order_line()  # Crea modelo de transición solo cuando existe requisición
 
     # Botón reestableercer a borrador
     def button_draft(self):
@@ -417,6 +425,9 @@ class PurchaseOrder(models.Model):
                 if inv and inv.state not in ('cancel', 'draft'):
                     raise UserError(_("Unable to cancel this purchase order. You must first cancel the related vendor bills."))
         self.write({'state': 'cancel', 'mail_reminder_confirmed': False, 'color': 0})
+        # Update state to cancel stock picking incoming
+        for rec in self.stock_picking_ids:
+            rec.action_cancel()
 
     # Boton cancelar extend
     def button_cancel_extend(self):

@@ -27,6 +27,7 @@
                         <group name="group_right">
                             <field name="ref"/>
                         </group>
+                        <field name="lot_ids" string="Lot/Serial"/>
                     </group>
                   </sheet>
                 </form>

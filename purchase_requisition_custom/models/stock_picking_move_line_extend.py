@@ -3,7 +3,6 @@ from odoo.exceptions import UserError, ValidationError
 from odoo.tools import OrderedSet
 from odoo.tools.float_utils import float_compare, float_is_zero, float_round
 
-
 class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
 
@@ -18,6 +17,13 @@ class StockMoveLine(models.Model):
     x_type_id = fields.Many2one(comodel_name='purchase_requisition_custom_stock_picking_type', related='picking_id.x_type_id',
                                 string='Tipo', help='Indica el tipo de tranferencia de inventario')
     currency_id = fields.Many2one(comodel_name='res.currency', string='Moneda', related='picking_id.currency_id')
+
+    # trae la placa relacionada con el numero de serie en tranferencia internas y expediciones
+    @api.onchange('lot_id')
+    def _related_lot_and_plaque(self):
+        if self.picking_id.picking_type_id.code != 'incoming':
+            for rec in self:
+                rec.write({'plaque_id': rec.lot_id.plaque_id})
 
     # Optiene la tarifa subtotal
     @api.depends('fee_unit')
