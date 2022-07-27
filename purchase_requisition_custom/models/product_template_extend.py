@@ -5,18 +5,24 @@ class ProductTemplate(models.Model):
 
     stock_quant = fields.One2many(comodel_name='stock.quant', inverse_name='product_tmpl_id',
                                   string='Inventario disponible')
-    available_stock = fields.Integer(string='Stock disponible', compute='_compute_available_stock')
+    available_stock = fields.Float(string='Disponible', compute='_compute_available_stock')
+
 
     # Indica el stock en bodegas internas
-    @api.depends('stock_quant')
     def _compute_available_stock(self):
-        data = self.env['stock.quant'].sudo().search([('product_tmpl_id', '=', self.ids), ('usage', '=', 'internal'),
-                                                      ('quantity', '!=', 0)])
-        if data:
-            for rec in data:
-                self.available_stock += rec.available_quantity
-        else:
-            self.available_stock = 0
+        for rec2 in self:
+            data = rec2.env['stock.quant'].sudo().search(
+                [('product_tmpl_id', '=', rec2.ids), ('usage', '=', 'internal'),
+                 ('location_id.usage', '=', 'internal'),
+                 ('available_quantity', '>', 0)])
+            if data:
+                for rec in data:
+                    rec2.available_stock += rec.available_quantity
+            else:
+                rec2.available_stock = 0
+
+
+
 
 
 

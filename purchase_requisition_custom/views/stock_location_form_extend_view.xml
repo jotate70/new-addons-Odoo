@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data>
+        <!--   Form view       -->
         <record id="stock_location_form_extend_view" model="ir.ui.view">
             <field name="name">stock_location_form_extend_view</field>
             <field name="model">stock.location</field>
@@ -21,7 +22,7 @@
                 </xpath>
             </field>
         </record>
-
+        <!--      List View    -->
         <record id="stock_location_list_extend_view" model="ir.ui.view">
             <field name="name">stock_location_list_extend_view</field>
             <field name="model">stock.location</field>
@@ -29,7 +30,10 @@
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='complete_name']" position="after">
                     <field name="warehouse_id" optional="show"/>
-                    <field name="location_id2" optional="hide"/>
+                    <field name="location_id2" optional="show"/>
+                </xpath>
+                <xpath expr="//field[@name='company_id']" position="after">
+                    <field name="account_analytic_id" optional="show"/>
                 </xpath>
             </field>
         </record>

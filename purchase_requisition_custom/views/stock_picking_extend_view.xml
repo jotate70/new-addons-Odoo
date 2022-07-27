@@ -6,13 +6,6 @@
       <field name="model">stock.picking</field>
       <field name="inherit_id" ref="stock.view_picking_form"/>
       <field name="arch" type="xml">
-          <xpath expr="//button[@name='action_confirm']" position="after">
-              <button name="compute_account_analytic_cost" string="Demo" type="object" class="oe_highlight" groups="base.group_user" data-hotkey="x" invisible=""/>
-<!--              <button name="button_validate_extend" string="Demo2" type="object" class="oe_highlight" groups="base.group_user" data-hotkey="x" invisible=""/>-->
-          </xpath>
-<!--          <xpath expr="//button[@name='action_confirm']" position="replace">-->
-<!--              <button name="action_confirm_extend" attrs="{'invisible': [('show_mark_as_todo', '=', False)]}" string="Marcar por realizar" type="object" class="oe_highlight" groups="base.group_user" data-hotkey="x"/>-->
-<!--          </xpath>-->
           <xpath expr="//field[@name='picking_type_id']" position="after">
               <field name="code" invisible="1"/>
               <field name="warehouse_id" invisible="1"/>
@@ -22,9 +15,13 @@
               <field name="contract_date_end" invisible="1"/>
           </xpath>
           <xpath expr="//field[@name='backorder_id']" position="after">
-              <field name="x_type_id" options="{'no_create':true, 'no_open':true}"/>
+              <field name="x_type_id" options="{'no_create':true, 'no_open':true}"
+              attrs="{'readonly': ['|', ('state', '=', 'done'), ('state', '=', 'cancel')]}"/>
               <field name="activity_id" invisible="1"/>
-              <field name="currency_id"/>
+              <field name="currency_id" attrs="{'readonly': ['|', ('state', '=', 'done'), ('state', '=', 'cancel')]}"/>
+          </xpath>
+          <xpath expr="//field[@name='origin']" position="after">
+              <field name="act" attrs="{'readonly': ['|', ('state', '=', 'done'), ('state', '=', 'cancel')]}"/>
           </xpath>
           <xpath expr="//field[@name='backorder_id']" position="after">
               <field name="requisition_id" readonly="1" attrs="{'invisible': [('requisition_id', '=', False)]}"/>

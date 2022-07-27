@@ -25,4 +25,5 @@ from . import purchase_order_line_extend
 from . import purchase_requisition_type_extend
 from . import stock_picking_transit_order_line
 from . import product_category_extend
+from . import product_product_extend
 

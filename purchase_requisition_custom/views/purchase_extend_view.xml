@@ -26,10 +26,11 @@
           <field name="image_product" optional="show" options="{&quot;size&quot;:[0,90]}" widget="image"/>
         </xpath>
         <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='order_line']/tree[1]/field[@name='name']" position="after">
-          <field name="warehouse_id" optional="hide"/>
-          <field name="location_id" optional="hide"/>
-          <field name="transit_location_id" optional="hide"/>
-          <field name="location_dest_id" optional="hide"/>
+          <field name="location_id" optional="hide" invisible="1"/>
+          <field name="warehouse_id" optional="show" domain="[('usage', '=', 'internal')]"/>
+          <field name="transit_location_id" optional="hide" domain="[('usage', '=', 'transit')]"/>
+          <field name="location_dest_id_domain" invisible="1"/>
+          <field name="location_dest_id" optional="show" domain="location_dest_id_domain"/>
         </xpath>
         <xpath expr="//form[1]/sheet[1]/notebook[1]" position="inside">
           <page string="Contabilidad analítica" name="account_analytic_page">
@@ -86,6 +87,10 @@
           <field name="warehouse_manager" widget="many2many_tags" options="{'no_create':true}"/>
           <field name="mobile_phone" invisible="1"/>
         </xpath>
+        <xpath expr="//field[@name='picking_type_id']" position="attributes">
+          <attribute name="attrs">{"readonly": [["state","in",["purchase","done","cancel"]]]}</attribute>
+          <attribute name="invisible">1</attribute>
+        </xpath>
       </field>
     </record>
 
@@ -125,7 +130,6 @@
                   class="oe_highlight" data-hotkey="z" attrs="{'invisible': ['|', ['state_aprove', '!=', 5], ['state', '!=', 'to approve']]}"/>
           <button name="button_approve_extend" type="object" string="Aprobar Orden ⁽estra⁾" confirm="¿Desea aprobar esta solicitud de compra?"
                   class="oe_highlight" data-hotkey="z" attrs="{'invisible': ['|', ['state_aprove', '!=', 6], ['state', '!=', 'to approve']]}"/>
-          <button name="get_default_color" type="object" string="Demo" invisible="1"/>
         </xpath>
         <xpath expr="//button[@name='button_draft']" position="replace" >
           <button name="button_draft_extend" states="cancel" string="Cambiar a borrador" type="object" data-hotkey="o"/>
@@ -139,6 +143,18 @@
         <xpath expr="//button[@name='button_cancel']" position="replace" >
           <button name="button_cancel" states="draft,sent,purchase" string="Cancelar" type="object" data-hotkey="x"
           confirm="¿Desea anular esta solicitud de compra?"/>
+        </xpath>
+      </field>
+    </record>
+
+    <!--    Vista lista ordenes de compra-->
+    <record id="purchase_order_tree_view" model="ir.ui.view">
+      <field name="name">purchase_order_tree_view</field>
+      <field name="model">purchase.order</field>
+      <field name="inherit_id" ref='purchase.purchase_order_tree'/>
+      <field name="arch" type="xml">
+        <xpath expr="//field[@name='user_id']" position="after">
+          <field name="representative_user"/>
         </xpath>
       </field>
     </record>

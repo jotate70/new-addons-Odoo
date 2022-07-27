@@ -42,4 +42,5 @@ class stock_picking_transit(models.Model):
                                 help='Muestra la cantidad disponible en la ubicación selecionada del producto')
     quantity = fields.Float(string='qty', help='Muestra la cantidad pedida por ubicación')
     observations = fields.Text(string='Observaciones')
+    product_uom = fields.Many2one(comodel_name='uom.uom', string='Product Unit of Measure')
 

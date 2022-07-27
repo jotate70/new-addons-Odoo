@@ -17,7 +17,6 @@ class stock_picking_extend(models.Model):
                                           related='location_dest_id.account_analytic_id')
     available_origin_location = fields.Float(string='Disponible', related='product_id.free_qty',
                                              help='Muestra la cantidad disponible que está sin reservar')
-
     standard_price = fields.Float(
         string='Costo Unitario', company_dependent=True,
         digits='Product Price',
@@ -27,20 +26,19 @@ class stock_picking_extend(models.Model):
             In FIFO: value of the last unit that left the stock (automatically computed).
             Used to value the product when the purchase cost is not known (e.g. inventory adjustment).
             Used to compute margins on sale orders.""")
-
     standard_price_t = fields.Float(
         string='Costo',
         compute='_compute_standard_price_t',
         help="""Costo unitario por cantidad de productos."""
     )
-
     fee_unit = fields.Float(string='Tarifa', digits='Product fee')
     fee_subtotal = fields.Float(compute='_compute_fee_subtotal', string='Subtotal Tarifa')
-    contract_date = fields.Date(strins='Fecha de contrato', related='picking_id.contract_date',
+    contract_date = fields.Date(string='Fecha de contrato', related='picking_id.contract_date',
                                 help='Indica la fecha que se realiza el contrato asociada a dicha transferencia')
-    contract_date_end = fields.Date(strins='Fecha de contrato final', related='picking_id.contract_date_end',
+    contract_date_end = fields.Date(string='Fecha de contrato final', related='picking_id.contract_date_end',
                                 help='Indica la fecha que se realiza el contrato asociada a dicha transferencia')
     currency_id = fields.Many2one(comodel_name='res.currency', string='Currency', related='picking_id.currency_id')
+    demo = fields.Char(string='demo')
 
     # Restricción de placas repetidas en la tranferencia
     @api.constrains('move_line_nosuggest_ids')
@@ -62,6 +60,33 @@ class stock_picking_extend(models.Model):
                     if line.plaque_id.id in exist_lines:
                         raise UserError('La placa %s ya se encuentra en la lista.' % line.plaque_id.name)
                     exist_lines.append(line.plaque_id.id)
+
+    # Restricción de placas aociadas a un serial/lote
+    @api.constrains('move_line_nosuggest_ids')
+    def _compute_constrains_plaque3(self):
+        for rec in self:
+            exist_lines = ['']
+            for line in rec.move_line_nosuggest_ids:
+                if line.plaque_id:
+                    rep = self.env['stock.production.lot'].search([('plaque_id', '=', line.plaque_id.ids)], limit=1)
+                    if rep:
+                        exist_lines.append(rep.ids)
+                        a = len(exist_lines)
+                        if a > 0 and line.lot_id != rep:
+                            raise UserError('La placa ya se encuentra asociada al serial %s.' % rep.name)
+
+    @api.constrains('move_line_ids')
+    def _compute_constrains_plaque4(self):
+        for rec in self:
+            exist_lines = ['']
+            for line in rec.move_line_ids:
+                if line.plaque_id:
+                    rep = self.env['stock.production.lot'].search([('plaque_id', '=', line.plaque_id.ids)], limit=1)
+                    if rep:
+                        exist_lines.append(rep.ids)
+                        a = len(exist_lines)
+                        if a > 0 and line.lot_id != rep:
+                            raise UserError('La placa ya se encuentra asociada al serial %s.' % rep.name)
 
     @api.depends('order_line.price_total')
     def _amount_all(self):
