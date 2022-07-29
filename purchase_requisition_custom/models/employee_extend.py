@@ -6,7 +6,7 @@ import json
 class employee_extend(models.Model):
     _inherit = 'hr.employee'
 
-    parent_optional_id = fields.Many2one(string='Aprobador optional', help='Permite tener una alternativa para un aprobador sin tope en caso de ausencia.')
+    parent_optional_id = fields.Many2one(comodel_name='hr.employee', string='Aprobador opcional', help='Permite tener una alternativa para un aprobador sin tope en caso de ausencia.')
     active_budget = fields.Boolean(string='Es responsable de presupuesto.',
                                    help='Está check activa la opción de asignar presupiesto al empleado.')
     general_manager = fields.Boolean(string='Sin tope de presupuesto.',
@@ -14,7 +14,7 @@ class employee_extend(models.Model):
     budget = fields.Float(string='Presupuesto', help='Monto maximo que puede aprobar por solicitud de compra.')
     budget_discount = fields.Float(string='Ultimo monto',
                                    help='Esté campo se utiliza para guardar el valor del ultimo monto aprobado en una requisición.')
-    budget_transit = fields.Date(string='Saldo de presupuesto', help='Indica el saldo del presupuesto a la fecha.')
+    budget_available = fields.Float(string='Saldo actual', help='Indica el saldo del presupuesto a la fecha.')
     budget_date_start = fields.Date(string='Fecha de incio',
                                     help='Indica la fecha de incio del presupuesto.')
     budget_date_end = fields.Date(string='Fecha de incio',
@@ -23,6 +23,12 @@ class employee_extend(models.Model):
                                          column1='hr_employee_id', column2='stock_warehouse_id', string='Almacenes',
                                          help='Almacenes que puedes aprobar transferencia internas inmeditas.')
     stock_warehouse_domain = fields.Char(compute="_compute_stock_warehouse", readonly=True, store=False)
+    budget_len = fields.Selection([('monthly', 'Mensual'),
+                                 ('quasrtely', 'Trimestral'),
+                                 ('biannual', 'Semestral'),
+                                 ('annual', 'Anual'),
+                                 ],
+                                string='Locación', help='Indica la ciudad donde se ejecuta el proyecto', store=True)
 
     # Función que aplica filtro dinamico de almacen
     @api.depends('manager_warehouse')
@@ -33,17 +39,21 @@ class employee_extend(models.Model):
                 [('id', "=", warehouse.ids)]
             )
 
+    @api.onchange('budget')
+    def _apply_manager_budget(self):
+        self.budget_available = self.budget
+
     def _compute_manager_budget(self):
-        if self.budget_transit >= 0:
-            self.budget_transit = self.budget_transit - self.budget_discount
+        if self.budget_available >= 0:
+            self.budget_available = self.budget_available - self.budget_discount
         else:
             # notificación
             self.action_notification()
 
-    def _reset_manager_budget_transit(self):
+    def _reset_manager_budget_available(self):
         employee_budget = self.env['hr.employee'].search([('active_budget', '=', True)])
         for rec in employee_budget:
-            rec.budget_transit = rec.budget
+            rec.budget_available = rec.budget
 
     # Notificación
     def action_notification(self):

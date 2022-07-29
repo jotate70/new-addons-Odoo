@@ -13,7 +13,11 @@
                 <field name="active_budget"/>
                 <field name="general_manager" attrs="{'invisible': [('active_budget', '=', False)]}"/>
                 <field name="parent_optional_id" attrs="{'invisible': [('general_manager', '=', False)]}"/>
-                <field name="budget"
+                <field name="budget" style="color: blue"
+                       attrs="{'invisible': ['|', ('general_manager', '=', True), ('active_budget', '=', False)]}"/>
+                 <field name="budget_len"
+                       attrs="{'invisible': ['|', ('general_manager', '=', True), ('active_budget', '=', False)]}"/>
+                <field name="budget_available" style="color: green" readonly="1"
                        attrs="{'invisible': ['|', ('general_manager', '=', True), ('active_budget', '=', False)]}"/>
               </group>
               <group string="Almacen a disposición">

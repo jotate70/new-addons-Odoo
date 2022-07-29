@@ -406,8 +406,13 @@ class purchase_requisition_extend(models.Model):
         if self.time_off_related == False:
             self.time_off = 'Disponible'
         else:
-           self.time_off = 'Ausente'
-           self.write({'manager2_id': self.manager_id.parent_id})
+            self.time_off = 'Ausente'
+            # Para el caso de cuando no es un gerente general o una persona con limite de presupuesto
+            if self.manager_id.general_manager == False:
+                self.write({'manager2_id': self.manager_id.parent_id})
+            # Para el caso de cuando es un gerente general o una persona sin tope de presupuesto
+            else:
+                self.write({'manager2_id': self.manager_id.parent_optional_id})
         return self.time_off
 
     # Sirve para indicar si está habilitado para aprobar solicitudes de compra
@@ -485,7 +490,7 @@ class purchase_requisition_extend(models.Model):
                             raise UserError(_('You cannot confirm the blanket order without quantity.'))
                         requisition_line.create_supplier_info()
                     self.write({'state': 'ongoing'})
-                # Comprueba el tipo de acuerdo de compra, si requiere o no requiere acuerdo de compra
+                # Comprueba el tipo de acuerdo de compra, si requiere o no requiere aprobación
                 elif self.type_id.disable_approval == False:
                     #     Crear actividad al jefe inmediato si esta disponible
                     if self.manager_id and self.time_off_related == False:
