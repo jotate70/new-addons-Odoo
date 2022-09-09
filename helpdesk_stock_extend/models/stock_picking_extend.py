@@ -3,7 +3,8 @@
 
 from odoo import models, fields
 
-class StockPicking(models.Model):
-    _inherit = 'stock.picking'
+class StockQuant(models.Model):
+    _inherit = 'stock.quant'
+    _description = 'Quants'
 
-    return_picking_id = fields.Many2one(comodel_name='stock.return.picking', string='Return')
+    stock_return_line = fields.Many2one(comodel_name='stock.return.picking.line', string="Related return line")

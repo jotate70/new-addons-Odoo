@@ -32,6 +32,7 @@
 
     # always loaded
     'data': [
+        'security/ir.model.access.csv',
         'wizard/stock_picking_return_extend_views.xml',
     ],
     'installable': True,
