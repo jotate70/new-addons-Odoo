@@ -6,20 +6,27 @@
             <field name="model">stock.return.picking</field>
             <field name="inherit_id" ref="helpdesk_stock.view_stock_return_picking_form_inherit_helpdesk_stock"/>
             <field name="arch" type="xml">
+                <!--            Buttons footer    -->
+                <xpath expr="//footer" position="replace">
+                    <footer>
+                        <button name="create_returns" string="Return" type="object" class="btn-primary" data-hotkey="q"
+                                attrs="{'invisible': [('type_return', '=', 'product')]}"/>
+                        <button string="Cancel" class="btn-secondary" special="cancel" data-hotkey="z"/>
+                    </footer>
+                </xpath>
                 <!--            Fields    -->
                 <xpath expr="//field[@name='suitable_picking_ids']" position="after">
                     <field name="type_return" widget="radio" options="{&quot;horizontal&quot;:true}"
                            attrs="{'invisible': [('ticket_id', '=', False)]}"/>
+                    <field name="location" invisible="1"/>
+                    <field name="warehouse_domain" invisible="1"/>
                     <field name="warehouse_id" invisible="1"/>
                     <field name="location_domain" invisible="1"/>
                     <field name="location_origin_id" invisible="1"/>
                     <field name="picking_domain_ids" invisible="1"/>
                     <field name="stock_picking_ids" invisible="1"/>
                     <field name="stock_quant_domain" invisible="1"/>
-                    <field name="demo" invisible=""/>
-                    <field name="demo2" invisible=""/>
-                    <field name="demo3" invisible=""/>
-                    <field name="demo4" invisible=""/>
+                    <field name="related_stock_picking" invisible="1"/>
                 </xpath>
                 <!--            Attributes    -->
                 <xpath expr="//group/field[@name='picking_id']" position="replace">
@@ -31,6 +38,9 @@
                 </field>
                 <field name="warehouse_id" position="after">
                     <div attrs="{'invisible': [('ticket_id', '=', False)]}">
+                        <label for="location" string="Locación:"/>
+                        <field name="location" attrs="{'required': [('ticket_id', '!=', False)]}"/>
+                        <span class="oe_read_only" > -- </span>
                         <label for="warehouse_id" string="Almacen de origen:"/>
                         <field name="warehouse_id" attrs="{'required': [('ticket_id', '!=', False)]}"/>
                         <span class="oe_read_only" > -- </span>
@@ -53,7 +63,7 @@
             </field>
         </record>
 
-         <record id="view_stock_return_picking_form_extend" model="ir.ui.view">
+        <record id="view_stock_return_picking_form_extend" model="ir.ui.view">
             <field name="name">Return_extend</field>
             <field name="model">stock.return.picking</field>
             <field name="inherit_id" ref="stock.view_stock_return_picking_form"/>
@@ -62,8 +72,9 @@
                 <xpath expr="//group[2]" position="replace">
                     <notebook attrs="{'invisible': [('ticket_id', '=', False)]}">
                         <page name="detail_operation" string="Detail Operation" attrs="{'invisible': [('type_return', '=', 'picking')]}">
-                            <field name="stock_quant_ids" nolabel="1" invisible="">
+                            <field name="stock_quant_ids" nolabel="1" invisible="" attrs="{'readonly': [('location_origin_id', '=', False)]}">
                                 <tree editable="top" create="1">
+                                    <field name="id" invisible=""/>
                                     <field name="product_id" invisible=""/>
                                     <field name="lot_id" invisible=""/>
                                     <field name="quantity"/>
@@ -72,13 +83,14 @@
                             </field>
                         </page>
                         <page name="operation" string="Operation" attrs="{'invisible': [('type_return', '=', 'picking')]}">
-                            <field name="product_return_moves2" nolabel="1">
+                            <field name="product_return_moves" nolabel="1">
                                 <tree editable="top" create="1">
                                     <field name="product_id" options="{'no_create': True, 'no_open': True}" force_save="1"/>
+                                    <field name="return_location_id" optional="show"/>
                                     <field name="quantity"/>
                                     <field name="uom_id" groups="uom.group_uom"/>
                                     <field name="move_id" invisible="1"/>
-                                    <field name="stock_quant_ids" invisible=""/>
+                                    <field name="stock_quant_ids" optional="hide"/>
                                 </tree>
                             </field>
                         </page>
@@ -89,9 +101,11 @@
                     <field name="product_return_moves" nolabel="1" attrs="{'invisible': [('ticket_id', '!=', False), ('type_return', '=', 'product')]}">
                         <tree editable="top" create="0">
                             <field name="product_id" options="{'no_create': True, 'no_open': True}" force_save="1"/>
+                            <field name="return_location_id" optional="show"/>
                             <field name="quantity"/>
                             <field name="uom_id" groups="uom.group_uom"/>
                             <field name="move_id" invisible="1"/>
+                            <field name="stock_quant_ids" optional="hide"/>
                         </tree>
                     </field>
                 </xpath>

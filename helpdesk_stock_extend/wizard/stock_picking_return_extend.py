@@ -6,34 +6,32 @@ from odoo.exceptions import UserError
 from odoo.tools.float_utils import float_round
 import json
 
-class ReturnPickingLine2(models.TransientModel):
-    _name = "return_picking_line2"
-    _rec_name = 'product_id'
-    _description = 'Return Picking Line 2'
-
-    product_id = fields.Many2one('product.product', string="Product", required=True)
-    quantity = fields.Float("Quantity", digits='Product Unit of Measure', required=True)
-    uom_id = fields.Many2one('uom.uom', string='Unit of Measure', related='product_id.uom_id')
-    wizard_id = fields.Many2one('stock.return.picking', string="Wizard")
-    move_id = fields.Many2one('stock.move', "Move")
-    warehouse_id = fields.Many2one(comodel_name='stock.warehouse', string='De almacen', help='Almacen de origen')
-    location_origin_id = fields.Many2one(comodel_name='stock.location', string='Return Location',
-                                         domain="location_domain")
-    stock_quant_domain = fields.Char(string="domain stock quant", related='wizard_id.stock_quant_domain')
-    stock_quant_ids = fields.Many2many(comodel_name='stock.quant', string='Stock Quant')
-
 class ReturnPickingLine(models.TransientModel):
     _inherit = 'stock.return.picking.line'
 
+    location = fields.Many2one(comodel_name='location_warehouse', string='Locación', related='wizard_id.location',
+                               help='Muestra la ciudad/locación del almacén')
     warehouse_id = fields.Many2one(comodel_name='stock.warehouse', string='De almacen', help='Almacen de origen')
     location_origin_id = fields.Many2one(comodel_name='stock.location', string='Return Location',
                                          domain="location_domain")
-    stock_quant_ids = fields.Many2many(comodel_name='stock.quant', string='Stock Quant')
+    return_location_id = fields.Many2one(comodel_name='stock.location', compute='_compute_return_location_id')
+    stock_quant_ids = fields.One2many(comodel_name='stock.quant', inverse_name='return_picking_line_id',
+                                      string='Detail Operation')
+
+    @api.onchange('product_id')
+    def _compute_return_location_id(self):
+        for rec in self.product_id.categ_id.return_location_id:
+            if rec.location_id2 == self.location:
+                self.return_location_id = rec.id
 
 class ReturnPicking(models.TransientModel):
     _inherit = 'stock.return.picking'
 
-    warehouse_id = fields.Many2one(comodel_name='stock.warehouse', string='De almacen', help='Almacen de origen')
+    location = fields.Many2one(comodel_name='location_warehouse', string='Locación',
+                               help='Muestra la ciudad/locación del almacén')
+    warehouse_domain = fields.Char(string="domain warehouse", compute='_domain_warehouse_domain_id')
+    warehouse_id = fields.Many2one(comodel_name='stock.warehouse', string='De almacen', help='Almacen de origen',
+                                   domain='warehouse_domain')
     type_return = fields.Selection([('picking', 'Por Transferencias'),
                                     ('product', 'Por producto')], store=True,
                                    string='Return Type', help='Indica el tipo de devolución', default="picking")
@@ -45,47 +43,56 @@ class ReturnPicking(models.TransientModel):
                                          domain="picking_domain_ids")
     stock_quant_domain = fields.Char(string="domain stock quant", compute='_domain_stock_quant_ids')
     stock_quant_ids = fields.Many2many(comodel_name='stock.quant', string='Stock Quant', domain='stock_quant_domain')
-    product_return_moves2 = fields.One2many('return_picking_line2', 'wizard_id', 'Moves')
-    demo = fields.Char('demo')
-    demo2 = fields.Char('demo2')
-    demo3 = fields.Char('demo3')
-    demo4 = fields.Char('demo4')
+    related_stock_picking = fields.Boolean(string="relation ticket")
 
+    # realciona y crea registro product_return_moves con stock_quant_ids
     @api.onchange('stock_quant_ids')
     def _compute_stock_picking(self):
-        a = []
-        b = []
-        qty = 0
-        if self.product_return_moves2:
-            self.product_return_moves2 = False
-        for rec in self.mapped('stock_quant_ids').product_id.ids:
+        product = []
+        if self.product_return_moves and self.related_stock_picking == True:
+            self.product_return_moves = False
+        for rec in self.mapped('stock_quant_ids').product_id:
             qty = 0
-            product = self.env['stock.quant'].search([('product_id', '=', rec), ('usage', '=', 'internal'),
-                                                      ('location_id.usage', '=', 'internal'),
-                                                      ('available_quantity', '>', 0.0)])
-            c = self.mapped('stock_quant_ids').filtered(lambda ml: ml.product_id == rec).product_id.ids
-            for rec2 in product:
-                qty = rec2.quantity + qty
-            b.append({'product_id': rec,
-                      'quantity': qty,
-                      })
-            self.write({'product_return_moves2': [(0, 0, {'product_id': rec,
-                      'quantity': qty,
-                      })]})
-        self.demo = b
-        self.demo2 = qty
+            product = []
+            for rec2 in self.mapped('stock_quant_ids'):
+                if rec.id == rec2.product_id.id:
+                    product.append(rec2.id)
+                    qty = rec2.quantity + qty
+            self.write({'product_return_moves': [(0, 0, {'product_id': rec,
+                                                         'quantity': qty,
+                                                         'stock_quant_ids': product,
+                                                          })]})
 
-
-    @api.onchange('location_origin_id', 'type_return')
+    @api.onchange('type_return')
     def _reset_stock_picking_ids(self):
         for rec in self:
-            if rec.ticket_id != False:
+            if rec.type_return == 'product' and rec.related_stock_picking == True:
+                rec.stock_picking_ids = False
+                rec.product_return_moves = False
+            elif rec.type_return == 'picking' and rec.related_stock_picking == True:
+                rec.stock_quant_ids = False
+                rec.product_return_moves = False
+
+    @api.onchange('location_origin_id')
+    def _reset_stock_picking(self):
+        for rec in self:
+            if rec.location_origin_id and rec.related_stock_picking == True:
                 rec.stock_picking_ids = False
                 rec.product_return_moves = False
 
     @api.onchange('warehouse_id')
     def _reset_location_origin_id(self):
         self.location_origin_id = False
+
+    # warehouse domain
+    @api.depends('location')
+    def _domain_warehouse_domain_id(self):
+        if self.location:
+            for rec in self:
+                rec.warehouse_domain = json.dumps(
+                    [('location_id', "=", rec.location.ids), ('usage', '=', 'internal')])
+        else:
+            self.warehouse_domain = json.dumps([])
 
     # Stock quant domain
     @api.depends('location_origin_id')
@@ -101,10 +108,10 @@ class ReturnPicking(models.TransientModel):
     # Origin location domain
     @api.depends('warehouse_id')
     def _domain_location_origin_id(self):
-        if self.suitable_picking_ids:
+        if self.warehouse_id:
             for rec in self:
                 rec.location_domain = json.dumps([('id', "=", rec.mapped('suitable_picking_ids').location_dest_id.ids),
-                                                  ('warehouse_id', '=', self.warehouse_id.ids)])
+                                                  ('warehouse_id', '=', rec.warehouse_id.ids), ('usage', 'in', ['supplier', 'internal', 'customer'])])
         else:
             self.location_domain = json.dumps([])
 
@@ -257,3 +264,158 @@ class ReturnPicking(models.TransientModel):
         new_picking.action_confirm()
         new_picking.action_assign()
         return new_picking.id, picking_type_id
+
+    def _create_return_2(self):
+        # --------------------------------------   Stage 1 -------------------------------------------------------
+        l = []
+        a = []
+        for rec1 in self.stock_quant_ids:
+            # Condición para solo tipos de productos almacenable y consubles
+            if rec1.product_id.detailed_type != 'service':
+                if rec1.transit_location_id:
+                    l.append(rec1.transit_location_id.id)
+                    a = list(set(l))
+                else:
+                    raise UserError('No se ha establecido una ubicación de tránsito en la categoría de productos.')
+        for rec2 in a:
+            picking = self.env['purchase.order.line'].search(
+                [('transit_location_id', '=', rec2), ('order_id', '=', self.ids),
+                 ('product_qty', '!=', 0)], limit=1)
+            create_vals = {'stage': 1,
+                           'partner_id': self.partner_id.id,
+                           'order_id2': self.id,
+                           'origin': self.name,
+                           'scheduled_date': self.date_planned,
+                           'picking_type_id': picking.transit_location_id.warehouse_id.in_type_id.id,
+                           'location_id': picking.location_id.id,
+                           'location_dest_id': picking.transit_location_id.id,
+                           'requisition_id': self.requisition_id.id,
+                           'currency_id': self.currency_id.id,
+                           'purchase_bol': True,
+                           }
+            stock_picking1 = self.env['stock.picking'].create(create_vals)
+            # Código que crea una nueva actividad
+            create_activity = {
+                'activity_type_id': 4,
+                'summary': 'Transferencia, Ingreso de invetario:',
+                'automated': True,
+                'note': 'Ha sido asignado para validar el ingreso de inventario',
+                'date_deadline': fields.datetime.now(),
+                'res_model_id': self.env['ir.model']._get_id('stock.picking'),
+                'res_id': stock_picking1.id,
+                'user_id': picking.warehouse_id.employee_id.user_id.id,
+            }
+            new_activity1 = self.env['mail.activity'].sudo().create(create_activity)
+            # Escribe el id de la actividad en un campo
+            stock_picking1.write({'activity_id': new_activity1.id})
+        picking_ids = []
+        for rec3 in self.order_line:
+            if rec3.product_id.detailed_type != 'service':
+                stock_picking2 = self.env['stock.picking'].search(
+                    [('order_id2', '=', self.ids), ('requisition_id', '=', self.requisition_id.ids),
+                     ('picking_type_id', '=', rec3.transit_location_id.warehouse_id.in_type_id.ids),
+                     ('location_dest_id', '=', rec3.transit_location_id.ids), ('stage', '=', 1)], limit=1)
+                # Creación de registros necearios para el stock picking move
+                self.write({'x_stock_picking_transit_order_line': [(0, 0, {'stage': 1,
+                                                                           'order_id': self.id,
+                                                                           'purchase_line_id': rec3.id,
+                                                                           'stock_picking_id': stock_picking2.id,
+                                                                           'product_id': rec3.product_id.id,
+                                                                           'picking_type_id': rec3.transit_location_id.warehouse_id.in_type_id.id,
+                                                                           'location_id': rec3.location_id.id,
+                                                                           'transit_location_id': rec3.transit_location_id.id,
+                                                                           'dest_warehouse_id': rec3.warehouse_id.id,
+                                                                           'dest_location_id': rec3.location_dest_id.id,
+                                                                           'account_analytic_id': rec3.account_analytic_id.id,
+                                                                           'quantity': rec3.product_qty,
+                                                                           'product_uom': rec3.product_uom.id,
+                                                                           })]})
+        for rec4 in self.x_stock_picking_transit_order_line:
+            if rec4.stage == 1:
+                create_vals2 = {
+                    'stage': 1,
+                    'origin': self.name,
+                    'purchase_line_id': rec4.purchase_line_id.id,
+                    'name': rec4.stock_picking_id.name,
+                    'picking_id': rec4.stock_picking_id.id,
+                    'product_id': rec4.product_id.id,
+                    'product_uom': rec4.product_uom.id,
+                    'product_uom_qty': rec4.quantity,
+                    'quantity_done': 0,
+                    'location_id': rec4.location_id.id,
+                    'location_dest_id': rec4.transit_location_id.id,
+                    'date_deadline': fields.datetime.now(),
+                }
+                self.env['stock.move'].sudo().create(create_vals2)
+        # Confirma stock picking en etapa 1
+        for rect in self.picking_ids:
+            if rect.stage == 1 and rect.state != 'cancel':
+                rect.action_confirm()
+
+        # -------------------------------------------   Stage 2 -------------------------------------------------------
+        r = []
+        b = []
+        for rc1 in self.order_line:
+            # Condición para solo tipos de productos almacenable y consubles
+            if rc1.product_id.detailed_type != 'service':
+                if rc1.location_dest_id:
+                    r.append(rc1.location_dest_id.id)
+                    b = list(set(r))
+                else:
+                    raise UserError('No se ha establecido una ubicación de destino.')
+        for rec5 in b:
+            picking2 = self.env['stock_picking_transit_order_line'].search(
+                [('dest_location_id', '=', rec5), ('order_id', '=', self.ids)], limit=1)
+            create_vals3 = {'stage': 2,
+                            'partner_id': self.partner_id.id,
+                            'order_id2': self.id,
+                            'origin': picking2.stock_picking_id.name,
+                            'parent_stock_picking': picking2.stock_picking_id.id,
+                            'scheduled_date': self.date_planned,
+                            'picking_type_id': picking2.dest_location_id.warehouse_id.int_type_id.id,
+                            'location_id': picking2.transit_location_id.id,
+                            'location_dest_id': picking2.dest_location_id.id,
+                            'requisition_id': self.requisition_id.id,
+                            'currency_id': self.currency_id.id,
+                            'purchase_bol': True,
+                            }
+            self.env['stock.picking'].create(create_vals3)
+        for rec6 in self.order_line:
+            if rec6.product_id.detailed_type != 'service':
+                stock_picking4 = self.env['stock.picking'].search(
+                    [('order_id2', '=', self.ids), ('requisition_id', '=', self.requisition_id.ids),
+                     ('picking_type_id', '=', rec6.location_dest_id.warehouse_id.int_type_id.ids),
+                     ('location_dest_id', '=', rec6.location_dest_id.ids), ('stage', '=', 2)], limit=1)
+                # Creación de registros necearios para el stock picking move
+                self.write({'x_stock_picking_transit_order_line': [(0, 0, {'stage': 2,
+                                                                           'order_id': self.id,
+                                                                           'purchase_line_id': rec6.id,
+                                                                           'stock_picking_id': stock_picking4.id,
+                                                                           'product_id': rec6.product_id.id,
+                                                                           'picking_type_id': rec6.location_dest_id.warehouse_id.in_type_id.id,
+                                                                           'location_id': rec6.location_id.id,
+                                                                           'transit_location_id': rec6.transit_location_id.id,
+                                                                           'dest_warehouse_id': rec6.warehouse_id.id,
+                                                                           'dest_location_id': rec6.location_dest_id.id,
+                                                                           'account_analytic_id': rec6.account_analytic_id.id,
+                                                                           'quantity': rec6.product_qty,
+                                                                           'product_uom': rec6.product_uom.id,
+                                                                           })]})
+        for rec7 in self.x_stock_picking_transit_order_line:
+            if rec7.stage == 2:
+                create_vals4 = {
+                    'stage': 2,
+                    'origin': self.name,
+                    'purchase_line_id': rec7.purchase_line_id.id,
+                    'name': rec7.stock_picking_id.name,
+                    'picking_id': rec7.stock_picking_id.id,
+                    'product_id': rec7.product_id.id,
+                    'product_uom': rec7.product_uom.id,
+                    'product_uom_qty': rec7.quantity,
+                    'quantity_done': 0,
+                    'location_id': rec7.transit_location_id.id,
+                    'location_dest_id': rec7.dest_location_id.id,
+                    'date_deadline': fields.datetime.now(),
+                }
+                self.env['stock.move'].sudo().create(create_vals4)
+
