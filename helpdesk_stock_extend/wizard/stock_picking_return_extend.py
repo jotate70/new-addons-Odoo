@@ -6,34 +6,50 @@ from odoo.exceptions import UserError
 from odoo.tools.float_utils import float_round
 import json
 
-class ReturnPickingLine2(models.TransientModel):
-    _name = "return_picking_line2"
-    _rec_name = 'product_id'
-    _description = 'Return Picking Line 2'
+class ReturnPickingLineDetail(models.TransientModel):
+    _name = "stock_return_picking_line_detail"
+    _description = 'Return Picking Line detail'
 
+    location = fields.Many2one(comodel_name='location_warehouse', string='Locación',
+                               help='Muestra la ciudad/locación del almacén')
+    warehouse_id = fields.Many2one(comodel_name='stock.warehouse', string='De almacen', help='Almacen de origen')
+    location_id = fields.Many2one(comodel_name='stock.location', string='Location')
+    location_dest_id = fields.Many2one(comodel_name='stock.location', string='Return Location')
     product_id = fields.Many2one('product.product', string="Product", required=True)
-    quantity = fields.Float("Quantity", digits='Product Unit of Measure', required=True)
+    lot_id = fields.Many2one(comodel_name='stock.production.lot', string='Lot/Serial Number')
+    plaque_id = fields.Many2one(comodel_name='stock_production_plaque', string='Placa')
+    quantity = fields.Float("Quantity", digits='Product Unit of Measure')
     uom_id = fields.Many2one('uom.uom', string='Unit of Measure', related='product_id.uom_id')
     wizard_id = fields.Many2one('stock.return.picking', string="Wizard")
-    move_id = fields.Many2one('stock.move', "Move")
-    warehouse_id = fields.Many2one(comodel_name='stock.warehouse', string='De almacen', help='Almacen de origen')
-    location_origin_id = fields.Many2one(comodel_name='stock.location', string='Return Location',
-                                         domain="location_domain")
-    stock_quant_domain = fields.Char(string="domain stock quant", related='wizard_id.stock_quant_domain')
-    stock_quant_ids = fields.Many2many(comodel_name='stock.quant', string='Stock Quant')
+    stock_quant_ids = fields.Many2many(comodel_name='stock.quant', string='Detail Operation')
+    fee_unit = fields.Float(string='Tarifa unitaria')
+    contract_date = fields.Date(string='Inicio de contrato',
+                                help='Indica la fecha que se realiza el contrato asociada a dicha transferencia')
+    contract_date_end = fields.Date(string='Finalización de contrato',
+                                help='Indica la fecha que se realiza el contrato asociada a dicha transferencia')
 
 class ReturnPickingLine(models.TransientModel):
     _inherit = 'stock.return.picking.line'
 
+    return_location_id = fields.Many2one(comodel_name='stock.location',
+                                          string='Ubicaciones de devolución',
+                                          help='Ubicacioón para devolcución seleciona por el sistema')
+    location = fields.Many2one(comodel_name='location_warehouse', string='Locación', related='wizard_id.location',
+                               help='Muestra la ciudad/locación del almacén')
     warehouse_id = fields.Many2one(comodel_name='stock.warehouse', string='De almacen', help='Almacen de origen')
     location_origin_id = fields.Many2one(comodel_name='stock.location', string='Return Location',
                                          domain="location_domain")
-    stock_quant_ids = fields.Many2many(comodel_name='stock.quant', string='Stock Quant')
+    stock_quant_ids = fields.Many2many(comodel_name='stock.quant',
+                                      string='Detail Operation')
 
 class ReturnPicking(models.TransientModel):
     _inherit = 'stock.return.picking'
 
-    warehouse_id = fields.Many2one(comodel_name='stock.warehouse', string='De almacen', help='Almacen de origen')
+    location = fields.Many2one(comodel_name='location_warehouse', string='Locación',
+                               help='Muestra la ciudad/locación del almacén')
+    warehouse_domain = fields.Char(string="domain warehouse", compute='_domain_warehouse_domain_id')
+    warehouse_id = fields.Many2one(comodel_name='stock.warehouse', string='De almacen', help='Almacen de origen',
+                                   domain='warehouse_domain')
     type_return = fields.Selection([('picking', 'Por Transferencias'),
                                     ('product', 'Por producto')], store=True,
                                    string='Return Type', help='Indica el tipo de devolución', default="picking")
@@ -45,47 +61,91 @@ class ReturnPicking(models.TransientModel):
                                          domain="picking_domain_ids")
     stock_quant_domain = fields.Char(string="domain stock quant", compute='_domain_stock_quant_ids')
     stock_quant_ids = fields.Many2many(comodel_name='stock.quant', string='Stock Quant', domain='stock_quant_domain')
-    product_return_moves2 = fields.One2many('return_picking_line2', 'wizard_id', 'Moves')
-    demo = fields.Char('demo')
-    demo2 = fields.Char('demo2')
-    demo3 = fields.Char('demo3')
-    demo4 = fields.Char('demo4')
+    related_stock_picking = fields.Boolean(string="relation ticket")
+    product_return_moves2 = fields.One2many('stock_return_picking_line_detail', 'wizard_id', 'Moves')
 
+    # realciona y crea registro product_return_moves con stock_quant_ids
     @api.onchange('stock_quant_ids')
     def _compute_stock_picking(self):
-        a = []
-        b = []
-        qty = 0
-        if self.product_return_moves2:
-            self.product_return_moves2 = False
-        for rec in self.mapped('stock_quant_ids').product_id.ids:
+        return_location = ''
+        return_id = 0
+        if self.product_return_moves and self.related_stock_picking == True:
+            self.product_return_moves = False
+        for rec in self.mapped('stock_quant_ids').product_id:
             qty = 0
-            product = self.env['stock.quant'].search([('product_id', '=', rec), ('usage', '=', 'internal'),
-                                                      ('location_id.usage', '=', 'internal'),
-                                                      ('available_quantity', '>', 0.0)])
-            c = self.mapped('stock_quant_ids').filtered(lambda ml: ml.product_id == rec).product_id.ids
-            for rec2 in product:
-                qty = rec2.quantity + qty
-            b.append({'product_id': rec,
-                      'quantity': qty,
-                      })
-            self.write({'product_return_moves2': [(0, 0, {'product_id': rec,
-                      'quantity': qty,
-                      })]})
-        self.demo = b
-        self.demo2 = qty
+            product = []
+            quant = []
+            for rec2 in self.stock_quant_ids:
+                if rec.id == rec2.product_id.id:
+                    product.append(rec.id)
+                    quant.append(rec2.id)
+                    qty = rec2.quantity + qty
+                    for rec3 in rec2.product_id.categ_id.return_location_id:
+                        if rec3.location_id2 == self.location:
+                            return_id = rec3.id
+                        else:
+                            return_id = False
+            self.write({'product_return_moves': [(0, 0, {'product_id': rec.id,
+                                                         'quantity': qty,
+                                                         'uom_id': rec.uom_id.id,
+                                                         'wizard_id': self.id,
+                                                         'stock_quant_ids': quant,
+                                                         'return_location_id': return_id,
+                                                         })]})
+        for rec3 in self.mapped('stock_quant_ids'):
+            self.write({'product_return_moves2': [(0, 0, {'location': rec3.location,
+                                                          'warehouse_id': self.warehouse_id,
+                                                          'location_id': self.location_id.id,
+                                                          'location_dest_id': rec2,
+                                                          'product_id': rec3.product_id.id,
+                                                          'lot_id': rec3.lot_id.id,
+                                                          'plaque_id': rec3.plaque_id,
+                                                          'quantity': rec3.quantity,
+                                                          'uom_id': rec3.product_uom_id.id,
+                                                          'fee_unit': rec3.fee_unit,
+                                                          'contract_date': rec3.contract_date,
+                                                          'contract_date_end': rec3.contract_date_end,
+                                                          })]})
 
+    @api.onchange('stock_quant_ids')
+    def _compute_location_demo(self):
+        if self.type_return == 'product':
+            for rec in self:
+                rec.location_id = rec.location_origin_id
 
-    @api.onchange('location_origin_id', 'type_return')
+    # Reestablece ubicaciones cuando se cambia el tipo de devolución
+    @api.onchange('type_return')
     def _reset_stock_picking_ids(self):
         for rec in self:
-            if rec.ticket_id != False:
+            if rec.type_return == 'product' and rec.related_stock_picking == True:
+                rec.stock_picking_ids = False
+                rec.product_return_moves = False
+            elif rec.type_return == 'picking' and rec.related_stock_picking == True:
+                rec.stock_quant_ids = False
+                rec.product_return_moves = False
+
+    # Reestablece las transferecias o productos seleccionados al cambiar de ubicación
+    @api.onchange('location_origin_id')
+    def _reset_stock_picking(self):
+        for rec in self:
+            if rec.location_origin_id and rec.related_stock_picking == True:
                 rec.stock_picking_ids = False
                 rec.product_return_moves = False
 
+    # Reestablece la ubicación de origin al seleccionar almacen
     @api.onchange('warehouse_id')
     def _reset_location_origin_id(self):
         self.location_origin_id = False
+
+    # warehouse domain
+    @api.depends('location')
+    def _domain_warehouse_domain_id(self):
+        if self.location:
+            for rec in self:
+                rec.warehouse_domain = json.dumps(
+                    [('location_id', "=", rec.location.ids), ('usage', '=', 'internal')])
+        else:
+            self.warehouse_domain = json.dumps([])
 
     # Stock quant domain
     @api.depends('location_origin_id')
@@ -94,17 +154,18 @@ class ReturnPicking(models.TransientModel):
             for rec in self:
                 rec.stock_quant_domain = json.dumps(
                     [('location_id', "=", rec.location_origin_id.ids), ('usage', '=', 'internal'),
-                     ('location_id.usage', '=', 'internal'), ('available_quantity', '>', 0.0)])
+                     ('location_id.usage', '=', 'internal'), ('available_quantity', '>', 0.0),
+                     ])
         else:
             self.stock_quant_domain = json.dumps([])
 
     # Origin location domain
     @api.depends('warehouse_id')
     def _domain_location_origin_id(self):
-        if self.suitable_picking_ids:
+        if self.warehouse_id:
             for rec in self:
                 rec.location_domain = json.dumps([('id', "=", rec.mapped('suitable_picking_ids').location_dest_id.ids),
-                                                  ('warehouse_id', '=', self.warehouse_id.ids)])
+                                                  ('warehouse_id', '=', rec.warehouse_id.ids), ('usage', 'in', ['supplier', 'internal', 'customer'])])
         else:
             self.location_domain = json.dumps([])
 
@@ -152,6 +213,7 @@ class ReturnPicking(models.TransientModel):
                 location_id = self.stock_picking_ids.picking_type_id.return_picking_type_id.default_location_dest_id.id
             self.location_id = location_id
 
+    # Prepara da lineas de devolución en modo devolución por tranferencias
     @api.model
     def _prepare_stock_return_picking_line_vals_from_move_ids(self, stock_move):
         quantity = stock_move.product_qty
@@ -171,6 +233,7 @@ class ReturnPicking(models.TransientModel):
             'uom_id': stock_move.product_id.uom_id.id,
         }
 
+    # Retorna los valores para generar el stock picking devolución en modo devolución por tranferencias
     def _prepare_picking_default_values(self):
         # Stock picking origin concatenate
         if self.picking_id:
@@ -196,11 +259,38 @@ class ReturnPicking(models.TransientModel):
                 'location_dest_id': self.location_id.id,
             }
 
+    def create_returns(self):
+        if self.type_return == 'picking':
+            for wizard in self:
+                new_picking_id, pick_type_id = wizard._create_returns()
+            # Override the context to disable all the potential filters that could have been set previously
+            ctx = dict(self.env.context)
+            ctx.update({
+                'default_partner_id': self.picking_id.partner_id.id,
+                'search_default_picking_type_id': pick_type_id,
+                'search_default_draft': False,
+                'search_default_assigned': False,
+                'search_default_confirmed': False,
+                'search_default_ready': False,
+                'search_default_planning_issues': False,
+                'search_default_available': False,
+            })
+            return {
+                'name': _('Returned Picking'),
+                'view_mode': 'form,tree,calendar',
+                'res_model': 'stock.picking',
+                'res_id': new_picking_id,
+                'type': 'ir.actions.act_window',
+                'context': ctx,
+            }
+        elif self.type_return == 'product':
+            self._create_return_extend_product()
+
+    # Crea el stock picking de devolución en modo devolución por tranferencias
     def _create_returns(self):
         # TODO sle: the unreserve of the next moves could be less brutal
         for return_move in self.product_return_moves.mapped('move_id'):
             return_move.move_dest_ids.filtered(lambda m: m.state not in ('done', 'cancel'))._do_unreserve()
-
         # create new picking for returned products
         if self.picking_id:
             new_picking = self.picking_id.copy(self._prepare_picking_default_values())
@@ -257,3 +347,77 @@ class ReturnPicking(models.TransientModel):
         new_picking.action_confirm()
         new_picking.action_assign()
         return new_picking.id, picking_type_id
+
+    # Crea stock picking de devolución en modo devolución por productos
+    def _create_return_extend_product(self):
+        # --------------------------------------   Stage 1 -------------------------------------------------------
+        l = []
+        a = []
+        for rec1 in self.product_return_moves:
+            # Condición para solo tipos de productos almacenable y consubles
+            if rec1.product_id.detailed_type != 'service':
+                if rec1.return_location_id:
+                    l.append(rec1.return_location_id.id)
+                    a = list(set(l))
+                else:
+                    raise UserError('No se ha establecido una ubicación de devoluciones en la categoría del producto, %s.' % rec1.product_id.name)
+        for rec2 in a:
+            transit_location_id = self.env['stock.location'].search([('id', '=', rec2)], limit=1)
+            oringin_return = 'return' + ' [' + self.warehouse_id.name + ']'
+            create_vals = {'partner_id': self.partner_id.id,
+                           'origin': oringin_return,
+                           'scheduled_date': fields.datetime.now(),
+                           'picking_type_id': transit_location_id.warehouse_id.pick_type_id.id,
+                           'location_id': self.location_origin_id.id,
+                           'location_dest_id': rec2,
+                           'ticket_return': self.ticket_id.id,
+                           'currency_id': self.env.company.currency_id.id,
+                           }
+            stock_picking1 = self.env['stock.picking'].create(create_vals)
+            # Código que crea una nueva actividad
+            create_activity = {
+                'activity_type_id': 4,
+                'summary': 'Devolución:',
+                'automated': True,
+                'note': 'Ha sido asignado para validar la devolución de inventario',
+                'date_deadline': fields.datetime.now(),
+                'res_model_id': self.env['ir.model']._get_id('stock.picking'),
+                'res_id': stock_picking1.id,
+                'user_id': transit_location_id.warehouse_id.employee_id.user_id.id,
+            }
+            new_activity1 = self.env['mail.activity'].sudo().create(create_activity)
+            # Escribe el id de la actividad en un campo
+            stock_picking1.write({'activity_id': new_activity1.id})
+            for rec3 in self.product_return_moves2:
+                if rec2 == rec3.return_location_id.id:
+                    create_vals2 = {'state': 'assigned',
+                                    'origin': oringin_return,
+                                    'name': stock_picking1.name,
+                                    'picking_id': stock_picking1.id,
+                                    'product_id': rec3.product_id.id,
+                                    'product_uom': rec3.uom_id.id,
+                                    'product_uom_qty': rec3.quantity,
+                                    'quantity_done': rec3.quantity,
+                                    'location_id': self.location_origin_id.id,
+                                    'location_dest_id': rec3.return_location_id.id,
+                                    'date_deadline': fields.datetime.now(),
+                                    }
+                    self.env['stock.move'].sudo().create(create_vals2)
+                # for rec4 in rec3.stock_quant_ids:
+                #     create_vals3 = {'location': rec4.location,
+                #                     'warehouse_id': self.warehouse_id,
+                #                     'location_id': self.location_id.id,
+                #                     'location_dest_id': rec2,
+                #                     'picking_id': stock_picking1.id,
+                #                     'product_id': rec4.product_id.id,
+                #                     'lot_id': rec4.lot_id.id,
+                #                     'product_uom_id': rec4.product_uom_id.id,
+                #                     'product_uom_qty': rec4.quantity,
+                #                     # 'qty_done': 0,
+                #                     }
+                #     self.env['stock.move.line'].sudo().create(create_vals3)
+
+
+
+
+

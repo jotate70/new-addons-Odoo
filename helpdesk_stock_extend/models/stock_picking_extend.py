@@ -1,10 +1,6 @@
-# -*- coding: utf-8 -*-
-# Part of Odoo. See LICENSE file for full copyright and licensing details.
+from odoo import fields, models, api, _
 
-from odoo import models, fields
+class stock_picking_extend(models.Model):
+    _inherit = 'stock.picking'
 
-class StockQuant(models.Model):
-    _inherit = 'stock.quant'
-    _description = 'Quants'
-
-    stock_return_line = fields.Many2one(comodel_name='stock.return.picking.line', string="Related return line")
+    ticket_return = fields.Many2one(comodel_name='helpdesk.ticket', string='Return tickets')
