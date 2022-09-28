@@ -36,7 +36,7 @@
 
     # always loaded
     'data': [
-        # 'security/ir.model.access.csv',
+        'security/ir.model.access.csv',
         'views/helpdesk_extend_views.xml',
         'views/product_category_extend.xml',
         'views/stock_picking_extend_view.xml',

@@ -1,2 +1,2 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_return_picking_line2,helpdesk_stock_custom.return_picking_line2,model_return_picking_line2,base.group_user,1,1,1,1
+access_return_picking_line_detail,helpdesk_stock_custom.return_picking_line_detail,model_return_picking_line_detail,base.group_user,1,1,1,1

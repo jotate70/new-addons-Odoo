@@ -3,4 +3,5 @@
 
 from . import product_category_extend
 from . import stock_picking_extend
+from . import helpdesk_extend
 # from . import stock_quant_extend
