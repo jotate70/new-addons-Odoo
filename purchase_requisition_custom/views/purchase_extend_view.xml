@@ -15,6 +15,9 @@
           <field name="state_aprove" invisible="1"/>
           <field name="manager_before" invisible="1"/>
           <field name="activity_id" invisible="1"/>
+          <field name="state_compute" invisible="1"/>
+          <field name="aprove_manager_origin" invisible="1"/>
+          <field name="approve_manager_budget_settings" invisible="1"/>
         </xpath>
         <xpath expr="//field[@name='date_order']" position="before">
           <field name="color" invisible="1"/>
@@ -30,7 +33,7 @@
           <field name="warehouse_id" optional="show" domain="[('usage', '=', 'internal')]"/>
           <field name="transit_location_id" optional="hide" domain="[('usage', '=', 'transit')]"/>
           <field name="location_dest_id_domain" invisible="1"/>
-          <field name="location_dest_id" optional="show" domain="location_dest_id_domain"/>
+          <field name="location_dest_id" optional="show"/>
         </xpath>
         <xpath expr="//form[1]/sheet[1]/notebook[1]" position="inside">
           <page string="Contabilidad analítica" name="account_analytic_page">
@@ -73,6 +76,14 @@
                  attrs="{'invisible': ['|', ('time_off_related', '=', True), ('aprove_manager', '=', False)]}"/>
             <field name="time_off" placeholder="Number" class="oe_inline" style="color: red"
                  attrs="{'invisible': ['|', ('time_off_related', '=', False), ('aprove_manager', '=', False)]}"/>
+            <span class="oe_read_only" attrs="{'invisible': ['|', ('state_compute', '=', False),
+            ('approve_manager_budget_settings', '=', False)]}"> --> Saldo: </span>
+            <field name="budget_available_manager" class="oe_inline" style="color: green"
+                   attrs="{'invisible': ['|', '|', ('state_compute', '=', False), ('budget_available_manager', '&lt;', 0),
+                   ('approve_manager_budget_settings', '=', False)]}"/>
+            <field name="budget_available_manager" class="oe_inline" style="color: red"
+                   attrs="{'invisible': ['|', '|', ('state_compute', '=', False), ('budget_available_manager', '&gt;', 0),
+                   ('approve_manager_budget_settings', '=', False)]}"/>
           </div>
         </field>
       </field>

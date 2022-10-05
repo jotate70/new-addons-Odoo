@@ -12,7 +12,8 @@
           </xpath>
           <xpath expr="//field[@name='date_done']" position="after">
               <field name="account_analytic_id" groups="analytic.group_analytic_accounting"/>
-              <field name="contract_date_end" invisible="1"/>
+              <field name="contract_date_end" invisible=""/>
+              <field name="ticket_many2many" widget="many2many_tags" invisible="1"/>
           </xpath>
           <xpath expr="//field[@name='backorder_id']" position="after">
               <field name="x_type_id" options="{'no_create':true, 'no_open':true}"

@@ -28,5 +28,6 @@ class stock_picking_transit_order_line(models.Model):
     analytic_tag_ids = fields.Many2many('account.analytic.tag', string='Analytic Tags')
     quantity = fields.Float(string='qty', help='Muestra la cantidad pedida por ubicación')
     product_uom = fields.Many2one(comodel_name='uom.uom', string='Product Unit of Measure')
+    price_unit = fields.Float(string='Costo Unitario')
 
 

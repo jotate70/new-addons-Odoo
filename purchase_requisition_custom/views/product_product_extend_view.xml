@@ -33,7 +33,7 @@
                 </xpath>
             </field>
         </record>
-         <!--        Vista formulario 2     -->
+         <!--                   Vista formulario 2             -->
         <record id="product_product_view_form_easy_extend" model="ir.ui.view">
             <field name="name">product_product_view_form_easy_extend</field>
             <field name="model">product.product</field>
@@ -52,8 +52,8 @@
             <field name="inherit_id" ref="product.product_product_tree_view"/>
             <field name="arch" type="xml">
                 <!--                Fields           -->
-                <xpath expr="//field[@name='qty_available']" position="after">
-                    <field name="available_stock" optional="show"/>
+                <xpath expr="//field[@name='qty_available']" position="before">
+                    <field name="available_stock" decoration-warning="available_stock == 0" decoration-bf="1"/>
                 </xpath>
             </field>
         </record>

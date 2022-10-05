@@ -43,7 +43,7 @@
 
         <!--   Supplier menu   -->
         <menuitem name="Placa" id="purchase_requisition_custom.stock_plaque_supplier_menu" parent="stock.menu_stock_inventory_control"
-                  action="action_window_stock_plaque" sequence="10"/>
+                  action="action_window_stock_plaque" sequence="10" groups="stock.group_stock_user"/>
 
     </data>
 </odoo>

@@ -14,8 +14,7 @@ class purchase_requisition_line_extend(models.Model):
     qty_location = fields.Float(string='Disponible', store=True,
                                  help='Muestra la cantidad disponible en la ubicación selecionada del producto')
     location = fields.Many2one(comodel_name='location_warehouse', string='Locación',
-                                               help='Muestra la ubicación de la ciudad/locación del producto',
-                                               )
+                                               help='Muestra la ubicación de la ciudad/locación del producto')
     location_id_domain = fields.Char(compute="_compute_location_stock_picking", readonly=True, store=False)
     picking_type_id = fields.Many2one(comodel_name='stock.picking.type', string='Tipo de operación',
                                       related="warehouse_id.int_type_id")
@@ -40,7 +39,7 @@ class purchase_requisition_line_extend(models.Model):
                                 help='El proyecto está relacionado con su respectivo centro de costo')
     account_analytic_id = fields.Many2one('account.analytic.account', string='Analytic Account')
     transit_location_id = fields.Many2one(comodel_name='stock.location', string='Ubicación de transito', store=True,
-                                          help='Solo se permite una ubicación de transito por almacen')
+                                          help='Solo se permite una ubicación de transito por almacen, está ubicación de transito es usada para ordenes de compra')
 
     # Seleciona la ubicación de transito
     @api.onchange('default_location_dest_id')
@@ -51,8 +50,7 @@ class purchase_requisition_line_extend(models.Model):
         else:
             virtual_transit_location = self.env['stock.location'].search(
                 [('usage', '=', 'transit'), ('id', '=', self.product_id.categ_id.location_id.ids),
-                 ('location_id.location_id2', '=', self.default_location_dest_id.location_id2.ids),
-                 ('warehouse_id', '=', self.warehouse_id.ids)], limit=1)
+                 ('location_id.location_id2', '=', self.default_location_dest_id.location_id2.ids)], limit=1)
             if virtual_transit_location:
                 a = virtual_transit_location
             else:
@@ -90,12 +88,12 @@ class purchase_requisition_line_extend(models.Model):
             )
 
     #   Función que calcula la cantidad de stock por ubicación
-    @api.onchange('location', 'product_id', 'warehouse_id', 'default_location_dest_id', 'product_qty2', 'state', 'show_picking')
+    @api.onchange('location', 'product_id', 'warehouse_id', 'default_location_dest_id', 'product_qty2', 'state','show_picking')
     def compute_qty_available_location(self):
         c = 0
         if self.location:
             for rec in self.product_id.stock_quant:
-                if rec.location == self.location and rec.location_id.usage == 'internal' and rec.usage == 'internal' and rec.product_id == self.product_id:
+                if rec.location == self.location and rec.location_id.usage == 'internal' and rec.product_id == self.product_id and rec.available_quantity > 0 and rec.usage == 'internal':
                     c = c + rec.available_quantity
                 self.qty_location = c
         else:
@@ -107,20 +105,14 @@ class purchase_requisition_line_extend(models.Model):
     @api.depends('qty_location')
     def _compute_inventory_product_qty(self):
         for rec in self:
-            if rec.product_qty2 <= rec.qty_location:
-                rec.inventory_product_qty = rec.product_qty2
-            else:
-                rec.inventory_product_qty = rec.qty_location
+            rec.inventory_product_qty = 0
 
     # Función que calcula la cantidad a comprar
     @api.onchange('product_qty2')
     @api.depends('qty_location')
     def _compute_product_qty(self):
         for rec2 in self:
-            if rec2.product_qty2 > rec2.qty_location:
-                rec2.product_qty = rec2.product_qty2 - rec2.qty_location
-            else:
-                rec2.product_qty = 0
+            rec2.product_qty = rec2.product_qty2
 
     # Función concatena la descripción del producto en la descripción
     @api.onchange('product_id')
@@ -135,24 +127,8 @@ class purchase_requisition_line_extend(models.Model):
             result = '[' + str(rec.default_code) + '] ' + str(rec.name) + b + str(a)
             self.write({'product_description_variants': result})
 
-
     # Prepara las lineas de puchase order line
     def _prepare_purchase_order_line(self, name, product_qty=0.0, price_unit=0.0, taxes_ids=False):
-        # # Determina la ubicación de transito por defecto en ordenes de compra
-        # if self.warehouse_id.usage == 'internal':
-        #     a = self.warehouse_id.transit_location_id
-        # else:
-        #     virtual_transit_location = self.env['stock.location'].search(
-        #         [('usage', '=', 'transit'), ('id', '=', self.product_id.categ_id.location_id.ids),
-        #          ('location_id.location_id2', '=', self.default_location_dest_id.location_id2.ids),
-        #          ('warehouse_id', '=', self.warehouse_id.ids)], limit=1)
-        #     if virtual_transit_location:
-        #         a = virtual_transit_location
-        #     else:
-        #         location = self.env['stock.location'].search(
-        #             [('usage', '=', 'transit'), ('id', '=', self.product_id.categ_id.location_default.ids)],
-        #             limit=1)
-        #         a = location
         # Optiene lineas para ordenes de compra
         self.ensure_one()
         requisition = self.requisition_id
