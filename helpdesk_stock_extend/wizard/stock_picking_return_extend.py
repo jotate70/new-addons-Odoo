@@ -7,7 +7,7 @@ from odoo.tools.float_utils import float_round
 import json
 
 class ReturnPickingLineDetail(models.TransientModel):
-    _name = "stock_return_picking_line_detail"
+    _name = "return_picking_line_detail"
     _description = 'Return Picking Line detail'
 
     location = fields.Many2one(comodel_name='location_warehouse', string='Locación',
@@ -15,13 +15,12 @@ class ReturnPickingLineDetail(models.TransientModel):
     warehouse_id = fields.Many2one(comodel_name='stock.warehouse', string='De almacen', help='Almacen de origen')
     location_id = fields.Many2one(comodel_name='stock.location', string='Location')
     location_dest_id = fields.Many2one(comodel_name='stock.location', string='Return Location')
-    product_id = fields.Many2one('product.product', string="Product", required=True)
+    product_id = fields.Many2one('product.product', string="Product")
     lot_id = fields.Many2one(comodel_name='stock.production.lot', string='Lot/Serial Number')
     plaque_id = fields.Many2one(comodel_name='stock_production_plaque', string='Placa')
     quantity = fields.Float("Quantity", digits='Product Unit of Measure')
     uom_id = fields.Many2one('uom.uom', string='Unit of Measure', related='product_id.uom_id')
     wizard_id = fields.Many2one('stock.return.picking', string="Wizard")
-    stock_quant_ids = fields.Many2many(comodel_name='stock.quant', string='Detail Operation')
     fee_unit = fields.Float(string='Tarifa unitaria')
     contract_date = fields.Date(string='Inicio de contrato',
                                 help='Indica la fecha que se realiza el contrato asociada a dicha transferencia')
@@ -41,6 +40,7 @@ class ReturnPickingLine(models.TransientModel):
                                          domain="location_domain")
     stock_quant_ids = fields.Many2many(comodel_name='stock.quant',
                                       string='Detail Operation')
+    return_detail = fields.Many2many(comodel_name='return_picking_line_detail', string='Detail Operation')
 
 class ReturnPicking(models.TransientModel):
     _inherit = 'stock.return.picking'
@@ -62,41 +62,49 @@ class ReturnPicking(models.TransientModel):
     stock_quant_domain = fields.Char(string="domain stock quant", compute='_domain_stock_quant_ids')
     stock_quant_ids = fields.Many2many(comodel_name='stock.quant', string='Stock Quant', domain='stock_quant_domain')
     related_stock_picking = fields.Boolean(string="relation ticket")
-    product_return_moves2 = fields.One2many('stock_return_picking_line_detail', 'wizard_id', 'Moves')
+    product_return_moves2 = fields.One2many('return_picking_line_detail', 'wizard_id', 'Moves')
 
     # realciona y crea registro product_return_moves con stock_quant_ids
     @api.onchange('stock_quant_ids')
     def _compute_stock_picking(self):
-        return_location = ''
         return_id = 0
+        return_dest = 0
+
         if self.product_return_moves and self.related_stock_picking == True:
             self.product_return_moves = False
-        for rec in self.mapped('stock_quant_ids').product_id:
+            self.product_return_moves2 = False
+
+        for rec1 in self.mapped('stock_quant_ids').product_id:
             qty = 0
             product = []
             quant = []
             for rec2 in self.stock_quant_ids:
-                if rec.id == rec2.product_id.id:
-                    product.append(rec.id)
+                if rec1.id == rec2.product_id.id:
+                    product.append(rec1.id)
                     quant.append(rec2.id)
                     qty = rec2.quantity + qty
-                    for rec3 in rec2.product_id.categ_id.return_location_id:
-                        if rec3.location_id2 == self.location:
-                            return_id = rec3.id
-                        else:
-                            return_id = False
-            self.write({'product_return_moves': [(0, 0, {'product_id': rec.id,
+                    if rec2.product_id.categ_id.return_location_id:
+                        for rec3 in rec2.product_id.categ_id.return_location_id:
+                            if rec3.location_id2 == self.location:
+                                return_id = rec3.id
+                    else:
+                        return_id = False
+            self.write({'product_return_moves': [(0, 0, {'product_id': rec1.id,
                                                          'quantity': qty,
-                                                         'uom_id': rec.uom_id.id,
+                                                         'uom_id': rec1.uom_id.id,
                                                          'wizard_id': self.id,
                                                          'stock_quant_ids': quant,
+                                                         # 'return_detail': quant,
                                                          'return_location_id': return_id,
                                                          })]})
         for rec3 in self.mapped('stock_quant_ids'):
+            for rec4 in self.product_return_moves:
+                if rec3.product_id == rec4.product_id:
+                    return_dest = rec4.return_location_id
             self.write({'product_return_moves2': [(0, 0, {'location': rec3.location,
                                                           'warehouse_id': self.warehouse_id,
                                                           'location_id': self.location_id.id,
-                                                          'location_dest_id': rec2,
+                                                          'location_dest_id': return_dest,
                                                           'product_id': rec3.product_id.id,
                                                           'lot_id': rec3.lot_id.id,
                                                           'plaque_id': rec3.plaque_id,
@@ -107,11 +115,13 @@ class ReturnPicking(models.TransientModel):
                                                           'contract_date_end': rec3.contract_date_end,
                                                           })]})
 
+    # Seleciona ubicación de destino (no se usa, es campo obligatorio por defecto)
     @api.onchange('stock_quant_ids')
     def _compute_location_demo(self):
         if self.type_return == 'product':
             for rec in self:
                 rec.location_id = rec.location_origin_id
+
 
     # Reestablece ubicaciones cuando se cambia el tipo de devolución
     @api.onchange('type_return')
@@ -120,9 +130,11 @@ class ReturnPicking(models.TransientModel):
             if rec.type_return == 'product' and rec.related_stock_picking == True:
                 rec.stock_picking_ids = False
                 rec.product_return_moves = False
+                # rec.product_return_moves2 = False
             elif rec.type_return == 'picking' and rec.related_stock_picking == True:
                 rec.stock_quant_ids = False
                 rec.product_return_moves = False
+                # rec.product_return_moves2 = False
 
     # Reestablece las transferecias o productos seleccionados al cambiar de ubicación
     @api.onchange('location_origin_id')
@@ -137,13 +149,19 @@ class ReturnPicking(models.TransientModel):
     def _reset_location_origin_id(self):
         self.location_origin_id = False
 
+    # Reestablece la ubicación de origin al seleccionar almacen
+    @api.onchange('location')
+    def _reset_location_id(self):
+        self.warehouse_id = False
+
     # warehouse domain
     @api.depends('location')
     def _domain_warehouse_domain_id(self):
         if self.location:
             for rec in self:
                 rec.warehouse_domain = json.dumps(
-                    [('location_id', "=", rec.location.ids), ('usage', '=', 'internal')])
+                    [('location_id', "=", rec.location.ids),
+                     ('partner_id', '=', rec.ticket_id.partner_id.ids)])
         else:
             self.warehouse_domain = json.dumps([])
 
@@ -153,9 +171,7 @@ class ReturnPicking(models.TransientModel):
         if self.location_origin_id:
             for rec in self:
                 rec.stock_quant_domain = json.dumps(
-                    [('location_id', "=", rec.location_origin_id.ids), ('usage', '=', 'internal'),
-                     ('location_id.usage', '=', 'internal'), ('available_quantity', '>', 0.0),
-                     ])
+                    [('location_id', "=", rec.location_origin_id.ids), ('available_quantity', '>', 0.0)])
         else:
             self.stock_quant_domain = json.dumps([])
 
@@ -164,8 +180,10 @@ class ReturnPicking(models.TransientModel):
     def _domain_location_origin_id(self):
         if self.warehouse_id:
             for rec in self:
-                rec.location_domain = json.dumps([('id', "=", rec.mapped('suitable_picking_ids').location_dest_id.ids),
-                                                  ('warehouse_id', '=', rec.warehouse_id.ids), ('usage', 'in', ['supplier', 'internal', 'customer'])])
+                # rec.location_domain = json.dumps([('id', "=", rec.mapped('suitable_picking_ids').location_dest_id.ids),
+                #                                   ('warehouse_id', '=', rec.warehouse_id.ids), ('usage', 'in', ['supplier', 'internal', 'customer'])])
+                rec.location_domain = json.dumps([('warehouse_id', '=', rec.warehouse_id.ids),
+                                                  ('usage', 'in', ['supplier', 'internal', 'customer'])])
         else:
             self.location_domain = json.dumps([])
 
@@ -174,28 +192,31 @@ class ReturnPicking(models.TransientModel):
     def _domain_pickings_id(self):
         if self.location_origin_id:
             for rec in self:
-                rec.picking_domain_ids = json.dumps([('id', 'in', self.mapped('suitable_picking_ids').filtered(lambda m: m.location_dest_id == rec.location_origin_id).ids)])
+                # rec.picking_domain_ids = json.dumps([('id', 'in', self.mapped('suitable_picking_ids').filtered(lambda m: m.location_dest_id == rec.location_origin_id).ids)])
+                rec.picking_domain_ids = json.dumps([('id', 'in', self.mapped('suitable_picking_ids').filtered(
+                    lambda m: m.location_dest_id == rec.location_origin_id).ids), ('state', '=', 'done')])
         else:
             self.picking_domain_ids = json.dumps([])
 
     @api.onchange('stock_picking_ids')
-    def _onchange_stocok_picking_ids(self):
+    def _onchange_stock_picking_ids(self):
         move_dest_exists = False
         product_return_moves = [(5,)]
         for rec in self.stock_picking_ids:
-            if rec and rec.state == 'done':
+            if rec and rec.state != 'done':
                 raise UserError(_("You may only return Done pickings."))
         # In case we want to set specific default values (e.g. 'to_refund'), we must fetch the
         # default values for creation.
         line_fields = [f for f in self.env['stock.return.picking.line']._fields.keys()]
         product_return_moves_data_tmpl = self.env['stock.return.picking.line'].default_get(line_fields)
         for move in self.stock_picking_ids:
-            if move.move_lines.state == 'cancel':
-                continue
-            if move.move_lines.scrapped:
-                continue
-            if move.move_lines.move_dest_ids:
-                move_dest_exists = True
+            for rec in move.move_lines:
+                if rec.state == 'cancel':
+                    continue
+                if rec.scrapped:
+                    continue
+                if rec.move_dest_ids:
+                    move_dest_exists = True
             product_return_moves_data = dict(product_return_moves_data_tmpl)
             product_return_moves_data.update(self._prepare_stock_return_picking_line_vals_from_move_ids(move.move_lines))
             product_return_moves.append((0, 0, product_return_moves_data))  # Se añade registro en la variable flotante
@@ -243,7 +264,7 @@ class ReturnPicking(models.TransientModel):
                 'state': 'draft',
                 'origin': _("Return of %s") % self.picking_id.name,
                 'location_id': self.picking_id.location_dest_id.id,
-                'location_dest_id': self.location_id.id
+                'location_dest_id': self.location_id.id,
             }
         string = ''
         if self.stock_picking_ids:
@@ -257,167 +278,139 @@ class ReturnPicking(models.TransientModel):
                 'origin': _("Return of %s") % string,
                 'location_id': self.location_origin_id.id,
                 'location_dest_id': self.location_id.id,
+                'currency_id': self.env.company.currency_id.id,
             }
-
-    def create_returns(self):
-        if self.type_return == 'picking':
-            for wizard in self:
-                new_picking_id, pick_type_id = wizard._create_returns()
-            # Override the context to disable all the potential filters that could have been set previously
-            ctx = dict(self.env.context)
-            ctx.update({
-                'default_partner_id': self.picking_id.partner_id.id,
-                'search_default_picking_type_id': pick_type_id,
-                'search_default_draft': False,
-                'search_default_assigned': False,
-                'search_default_confirmed': False,
-                'search_default_ready': False,
-                'search_default_planning_issues': False,
-                'search_default_available': False,
-            })
-            return {
-                'name': _('Returned Picking'),
-                'view_mode': 'form,tree,calendar',
-                'res_model': 'stock.picking',
-                'res_id': new_picking_id,
-                'type': 'ir.actions.act_window',
-                'context': ctx,
-            }
-        elif self.type_return == 'product':
-            self._create_return_extend_product()
 
     # Crea el stock picking de devolución en modo devolución por tranferencias
     def _create_returns(self):
-        # TODO sle: the unreserve of the next moves could be less brutal
-        for return_move in self.product_return_moves.mapped('move_id'):
-            return_move.move_dest_ids.filtered(lambda m: m.state not in ('done', 'cancel'))._do_unreserve()
-        # create new picking for returned products
-        if self.picking_id:
-            new_picking = self.picking_id.copy(self._prepare_picking_default_values())
-            picking_type_id = new_picking.picking_type_id.id
-            new_picking.message_post_with_view('mail.message_origin_link',
-                values={'self': new_picking, 'origin': self.picking_id},
-                subtype_id=self.env.ref('mail.mt_note').id)
-        else:
-            for rec in self.stock_picking_ids:
-                picking = rec
-            new_picking = picking.copy(self._prepare_picking_default_values())
-            picking_type_id = new_picking.picking_type_id.id
-            new_picking.message_post_with_view('mail.message_origin_link',
-                                               values={'self': new_picking, 'origin': self.stock_picking_ids},
-                                               subtype_id=self.env.ref('mail.mt_note').id)
-        returned_lines = 0
-        for return_line in self.product_return_moves:
-            if not return_line.move_id:
-                raise UserError(_("You have manually created product lines, please delete them to proceed."))
-            # TODO sle: float_is_zero?
-            if return_line.quantity:
-                returned_lines += 1
-                vals = self._prepare_move_default_values(return_line, new_picking)
-                r = return_line.move_id.copy(vals)
-                vals = {}
+        if self.type_return == 'product':
+            pickings = []
+            self.create_return_extend_product()
+            return pickings
+        elif self.type_return == 'picking':
+            # TODO sle: the unreserve of the next moves could be less brutal
+            for return_move in self.product_return_moves.mapped('move_id'):
+                return_move.move_dest_ids.filtered(lambda m: m.state not in ('done', 'cancel'))._do_unreserve()
+            # create new picking for returned products
+            if self.picking_id:
+                new_picking = self.picking_id.copy(self._prepare_picking_default_values())
+                picking_type_id = new_picking.picking_type_id.id
+                new_picking.message_post_with_view('mail.message_origin_link',
+                    values={'self': new_picking, 'origin': self.picking_id},
+                    subtype_id=self.env.ref('mail.mt_note').id)
+            else:
+                for rec in self.stock_picking_ids:
+                    picking = rec
+                new_picking = picking.copy(self._prepare_picking_default_values())
+                picking_type_id = new_picking.picking_type_id.id
+                new_picking.message_post_with_view('mail.message_origin_link',
+                                                   values={'self': new_picking, 'origin': self.stock_picking_ids},
+                                                   subtype_id=self.env.ref('mail.mt_note').id)
+            returned_lines = 0
+            for return_line in self.product_return_moves:
+                if not return_line.move_id:
+                    raise UserError(_("You have manually created product lines, please delete them to proceed."))
+                # TODO sle: float_is_zero?
+                if return_line.quantity:
+                    returned_lines += 1
+                    vals = self._prepare_move_default_values(return_line, new_picking)
+                    r = return_line.move_id.copy(vals)
+                    vals = {}
 
-                # +--------------------------------------------------------------------------------------------------------+
-                # |       picking_pick     <--Move Orig--    picking_pack     --Move Dest-->   picking_ship
-                # |              | returned_move_ids              ↑                                  | returned_move_ids
-                # |              ↓                                | return_line.move_id              ↓
-                # |       return pick(Add as dest)          return toLink                    return ship(Add as orig)
-                # +--------------------------------------------------------------------------------------------------------+
-                move_orig_to_link = return_line.move_id.move_dest_ids.mapped('returned_move_ids')
-                # link to original move
-                move_orig_to_link |= return_line.move_id
-                # link to siblings of original move, if any
-                move_orig_to_link |= return_line.move_id \
-                    .mapped('move_dest_ids').filtered(lambda m: m.state not in ('cancel')) \
-                    .mapped('move_orig_ids').filtered(lambda m: m.state not in ('cancel'))
-                move_dest_to_link = return_line.move_id.move_orig_ids.mapped('returned_move_ids')
-                # link to children of originally returned moves, if any. Note that the use of
-                # 'return_line.move_id.move_orig_ids.returned_move_ids.move_orig_ids.move_dest_ids'
-                # instead of 'return_line.move_id.move_orig_ids.move_dest_ids' prevents linking a
-                # return directly to the destination moves of its parents. However, the return of
-                # the return will be linked to the destination moves.
-                move_dest_to_link |= return_line.move_id.move_orig_ids.mapped('returned_move_ids') \
-                    .mapped('move_orig_ids').filtered(lambda m: m.state not in ('cancel')) \
-                    .mapped('move_dest_ids').filtered(lambda m: m.state not in ('cancel'))
-                vals['move_orig_ids'] = [(4, m.id) for m in move_orig_to_link]
-                vals['move_dest_ids'] = [(4, m.id) for m in move_dest_to_link]
-                r.write(vals)
-        if not returned_lines:
-            raise UserError(_("Please specify at least one non-zero quantity."))
-        new_picking.action_confirm()
-        new_picking.action_assign()
-        return new_picking.id, picking_type_id
+                    # +--------------------------------------------------------------------------------------------------------+
+                    # |       picking_pick     <--Move Orig--    picking_pack     --Move Dest-->   picking_ship
+                    # |              | returned_move_ids              ↑                                  | returned_move_ids
+                    # |              ↓                                | return_line.move_id              ↓
+                    # |       return pick(Add as dest)          return toLink                    return ship(Add as orig)
+                    # +--------------------------------------------------------------------------------------------------------+
+                    move_orig_to_link = return_line.move_id.move_dest_ids.mapped('returned_move_ids')
+                    # link to original move
+                    move_orig_to_link |= return_line.move_id
+                    # link to siblings of original move, if any
+                    move_orig_to_link |= return_line.move_id \
+                        .mapped('move_dest_ids').filtered(lambda m: m.state not in ('cancel')) \
+                        .mapped('move_orig_ids').filtered(lambda m: m.state not in ('cancel'))
+                    move_dest_to_link = return_line.move_id.move_orig_ids.mapped('returned_move_ids')
+                    # link to children of originally returned moves, if any. Note that the use of
+                    # 'return_line.move_id.move_orig_ids.returned_move_ids.move_orig_ids.move_dest_ids'
+                    # instead of 'return_line.move_id.move_orig_ids.move_dest_ids' prevents linking a
+                    # return directly to the destination moves of its parents. However, the return of
+                    # the return will be linked to the destination moves.
+                    move_dest_to_link |= return_line.move_id.move_orig_ids.mapped('returned_move_ids') \
+                        .mapped('move_orig_ids').filtered(lambda m: m.state not in ('cancel')) \
+                        .mapped('move_dest_ids').filtered(lambda m: m.state not in ('cancel'))
+                    vals['move_orig_ids'] = [(4, m.id) for m in move_orig_to_link]
+                    vals['move_dest_ids'] = [(4, m.id) for m in move_dest_to_link]
+                    r.write(vals)
+            if not returned_lines:
+                raise UserError(_("Please specify at least one non-zero quantity."))
+            new_picking.action_confirm()
+            new_picking.action_assign()
+            return new_picking.id, picking_type_id
 
     # Crea stock picking de devolución en modo devolución por productos
-    def _create_return_extend_product(self):
-        # --------------------------------------   Stage 1 -------------------------------------------------------
+    def create_return_extend_product(self):
         l = []
         a = []
-        for rec1 in self.product_return_moves:
-            # Condición para solo tipos de productos almacenable y consubles
-            if rec1.product_id.detailed_type != 'service':
-                if rec1.return_location_id:
-                    l.append(rec1.return_location_id.id)
-                    a = list(set(l))
-                else:
-                    raise UserError('No se ha establecido una ubicación de devoluciones en la categoría del producto, %s.' % rec1.product_id.name)
-        for rec2 in a:
-            transit_location_id = self.env['stock.location'].search([('id', '=', rec2)], limit=1)
-            oringin_return = 'return' + ' [' + self.warehouse_id.name + ']'
+        picking = []
+        operation = []
+        for rec1 in self.mapped('product_return_moves'):
+            if rec1.return_location_id:
+                l.append(rec1.return_location_id.id)
+                a = list(set(l))
+            else:
+                raise UserError('No se ha establecido una ubicación de devoluciones en la categoría del producto, %s.' % rec1.product_id.name)
+        for rec2 in self.mapped('product_return_moves').return_location_id:
+            picking_type = self.env['stock.location'].search([('id', '=', rec1.return_location_id.id)], limit=1)
             create_vals = {'partner_id': self.partner_id.id,
-                           'origin': oringin_return,
+                           'origin': 'return' + ' [' + self.warehouse_id.name + ']',
                            'scheduled_date': fields.datetime.now(),
-                           'picking_type_id': transit_location_id.warehouse_id.pick_type_id.id,
+                           'picking_type_id': picking_type.warehouse_id.pick_type_id.id,
                            'location_id': self.location_origin_id.id,
-                           'location_dest_id': rec2,
+                           'location_dest_id': rec2.id,
                            'ticket_return': self.ticket_id.id,
                            'currency_id': self.env.company.currency_id.id,
                            }
             stock_picking1 = self.env['stock.picking'].create(create_vals)
+            # Guarda variables de retorno del stock picking y tipo de operación
+            picking.append(stock_picking1.id)
+            # operation.append(stock_picking1.picking_type_id)
+            # return picking, operation
             # Código que crea una nueva actividad
-            create_activity = {
-                'activity_type_id': 4,
-                'summary': 'Devolución:',
-                'automated': True,
-                'note': 'Ha sido asignado para validar la devolución de inventario',
-                'date_deadline': fields.datetime.now(),
-                'res_model_id': self.env['ir.model']._get_id('stock.picking'),
-                'res_id': stock_picking1.id,
-                'user_id': transit_location_id.warehouse_id.employee_id.user_id.id,
-            }
+            create_activity = {'activity_type_id': 4,
+                               'summary': 'Devolución:',
+                               'automated': True,
+                               'note': 'Ha sido asignado para validar la devolución de inventario',
+                               'date_deadline': fields.datetime.now(),
+                               'res_model_id': self.env['ir.model']._get_id('stock.picking'),
+                               'res_id': stock_picking1.id,
+                               'user_id': stock_picking1.location_dest_id.warehouse_id.employee_id.user_id.id,
+                               }
             new_activity1 = self.env['mail.activity'].sudo().create(create_activity)
             # Escribe el id de la actividad en un campo
             stock_picking1.write({'activity_id': new_activity1.id})
+            # Crea linea de operaciones detalladas
             for rec3 in self.product_return_moves2:
-                if rec2 == rec3.return_location_id.id:
-                    create_vals2 = {'state': 'assigned',
-                                    'origin': oringin_return,
-                                    'name': stock_picking1.name,
+                if rec3.location_dest_id == rec2:
+                    create_vals3 = {
+                                    'location_id': self.location_id.id,
+                                    'location_dest_id': rec2.id,
                                     'picking_id': stock_picking1.id,
                                     'product_id': rec3.product_id.id,
-                                    'product_uom': rec3.uom_id.id,
-                                    'product_uom_qty': rec3.quantity,
-                                    'quantity_done': rec3.quantity,
-                                    'location_id': self.location_origin_id.id,
-                                    'location_dest_id': rec3.return_location_id.id,
-                                    'date_deadline': fields.datetime.now(),
+                                    'lot_id': rec3.lot_id.id,
+                                    'plaque_id': rec3.plaque_id.id,
+                                    'product_uom_id': rec3.uom_id.id,
+                                    'product_uom_qty': 0,
+                                    'qty_done': rec3.quantity,
+                                    'fee_unit': rec3.fee_unit,
+                                    'contract_date': rec3.contract_date,
+                                    'contract_date_end': rec3.contract_date_end,
                                     }
-                    self.env['stock.move'].sudo().create(create_vals2)
-                # for rec4 in rec3.stock_quant_ids:
-                #     create_vals3 = {'location': rec4.location,
-                #                     'warehouse_id': self.warehouse_id,
-                #                     'location_id': self.location_id.id,
-                #                     'location_dest_id': rec2,
-                #                     'picking_id': stock_picking1.id,
-                #                     'product_id': rec4.product_id.id,
-                #                     'lot_id': rec4.lot_id.id,
-                #                     'product_uom_id': rec4.product_uom_id.id,
-                #                     'product_uom_qty': rec4.quantity,
-                #                     # 'qty_done': 0,
-                #                     }
-                #     self.env['stock.move.line'].sudo().create(create_vals3)
-
-
+                    self.env['stock.move.line'].sudo().create(create_vals3)
+            stock_picking1.action_confirm()
+            # stock_picking1.action_assign()
+        # Add tickets in helpdesk
+        self.ticket_id.compute_picking_ids(picking)
 
 
 

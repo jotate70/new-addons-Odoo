@@ -28,7 +28,6 @@
     # any module necessary for this one to work correctly
     'depends': [
         'stock',
-        'helpdesk',
         'helpdesk_stock',
         'helpdesk_ticket_custom',
         'purchase_requisition_custom',
@@ -36,7 +35,7 @@
 
     # always loaded
     'data': [
-        # 'security/ir.model.access.csv',
+        'security/ir.model.access.csv',
         'views/helpdesk_extend_views.xml',
         'views/product_category_extend.xml',
         'views/stock_picking_extend_view.xml',
