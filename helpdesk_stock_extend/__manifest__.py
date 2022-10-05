@@ -28,7 +28,6 @@
     # any module necessary for this one to work correctly
     'depends': [
         'stock',
-        'helpdesk',
         'helpdesk_stock',
         'helpdesk_ticket_custom',
         'purchase_requisition_custom',

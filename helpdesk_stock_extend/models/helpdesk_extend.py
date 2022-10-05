@@ -12,3 +12,7 @@ class HelpdeskTicket(models.Model):
     def compute_picking_ids(self, pickings):
         self.picking_ids = pickings
 
+    @api.onchange('stage_id')
+    def _compute_picking_state_cancel(self):
+        if self.stage_id == 'cancel':
+            self.picking_ids.action_cancel()
