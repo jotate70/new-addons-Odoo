@@ -31,6 +31,17 @@ class helpdesk_ticket_extended(models.Model):
     project_domain = fields.Char(string='project domain', compute='_domain_depends_partner')
     project = fields.Many2one(comodel_name='project.project', string='Proyecto',
                               help='El proyecto está relacionado con su respectivo centro de costo')
+    billing = fields.Selection([('no_billing', 'No'),
+                                ('for_billing', 'Si')],
+                               string='Facturable:',
+                               help='Campo que permite clasificar ticket si es facturable o no facturable',
+                               required="True", store=True, default='no_billing')
+
+    # Restablecer proyecto
+    @api.onchange('partner_id')
+    def reset_project(self):
+        self.project = False
+        self.x_project = False
 
     # Función que aplica filtro dinamico de proyecto
     @api.depends('partner_id')
@@ -41,6 +52,24 @@ class helpdesk_ticket_extended(models.Model):
                 rec.project_domain = json.dumps([('id', "=", project.ids)])
             else:
                 rec.project_domain = json.dumps([])
+
+    def action_generate_fsm_task(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Create a Field Service task'),
+            'res_model': 'helpdesk.create.fsm.task',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'use_fsm': True,
+                'default_helpdesk_ticket_id': self.id,
+                'default_user_id': False,
+                'default_partner_id': self.partner_id.id if self.partner_id else False,
+                'default_name': self.name,
+                'default_project_id': self.project.id,
+            }
+        }
 
 
 

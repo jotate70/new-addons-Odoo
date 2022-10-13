@@ -27,11 +27,11 @@
         15.4.0 the department field is added to be used in the filter and grouping in the view
         15.5.0 Team grouping is added to the web portal
         15.1.1 bug fix filter all on website
-        15.2.0 The family and subgroup field is hidden and the type field is included in the website.
-        15.3.0 The helpdesk module is related to projects.
+        15.2.0 The family and subgroup field is hidden and the type field is included in the website
+        15.3.0 The helpdesk module is related to projects
     """,
 
-    'author': "Author: Julián Toscano, https://www.linkedin.com/in/jotate70/",
+    'author': "Company: Andirent SAS, Author: Julián Toscano, https://www.linkedin.com/in/jotate70/",
     'website': "https://www.andirent.co",
 
     'category': 'helpdesk',
