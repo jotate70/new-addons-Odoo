@@ -13,6 +13,10 @@
     'summary': """
         This module creates new models and fields to extend the functionality of the helpdesk tickets,
         and website tickets form
+        """,
+
+    'description': """
+        Module that extends functionality in the helpdesk module and add website tickets form
         
         15.0.1
         15.0.2
@@ -23,13 +27,11 @@
         15.4.0 the department field is added to be used in the filter and grouping in the view
         15.5.0 Team grouping is added to the web portal
         15.1.1 bug fix filter all on website
-        """,
-
-    'description': """
-        Module that extends functionality in the helpdesk module and add website tickets form
+        15.2.0 The family and subgroup field is hidden and the type field is included in the website
+        15.3.0 The helpdesk module is related to projects
     """,
 
-    'author': "Andirent  Author: Julián Toscano",
+    'author': "Company: Andirent SAS, Author: Julián Toscano, https://www.linkedin.com/in/jotate70/",
     'website': "https://www.andirent.co",
 
     'category': 'helpdesk',
@@ -41,6 +43,7 @@
                 'helpdesk_fsm',
                 'website_helpdesk_form',
                 'contacts',
+                'project',
                 ],
 
     # always loaded
@@ -57,6 +60,9 @@
         'views/views_helpdesk_users_extended.xml',
         'views/helpdesk_templates_o.xml',
         'views/helpdesk_portal_templates.xml',
+        'views/project_inherit_view.xml',
+        'views/views_project_location.xml',
+        'views/helpdesk_custom_views.xml',
     ],
     'installable': True,
     'application': True,
