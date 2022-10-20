@@ -2,20 +2,20 @@
 <odoo>
     <data>
         <!-- Smart button -->
-        <record model="ir.actions.act_window" id="action_stock_quant_to_so">
+        <record model="ir.actions.act_window" id="action_stock_quant_to_so_pt">
             <field name="name">Disponible</field>
             <field name="type">ir.actions.act_window</field>
             <field name="res_model">stock.quant</field>
             <field name="view_mode">tree,form</field>
             <field name="domain">[('product_tmpl_id', '=', active_id), ('usage', '=', 'internal'),
-                ('location_id.usage', '=', 'internal'), ('quantity', '>', 0.0)]</field>
+                ('location_id.usage', '=', 'internal'), ('available_quantity', '>', 0.0)]</field>
             <field name="context">{
                 "default_product_tmpl_id": active_id,
                 "default_user_id": False,
                 }
             </field>
         </record>
-
+        <!--        Vista formulario     -->
         <record id="product_template_extend_view" model="ir.ui.view">
             <field name="name">product_template_extend_view</field>
             <field name="model">product.template</field>
@@ -24,7 +24,7 @@
             <field name="arch" type="xml">
                 <!--         smart button           -->
                 <xpath expr="//button[@name='action_open_quants']" position="before">
-                    <button name="%(action_stock_quant_to_so)d" type="action" class="oe_stat_button" icon="fa-cubes">
+                    <button name="%(action_stock_quant_to_so_pt)d" type="action" class="oe_stat_button" icon="fa-cubes">
                         <field name="available_stock" widget="statinfo" string="Disponible"/>
                     </button>
                 </xpath>
@@ -45,9 +45,36 @@
                     <field name="type"/>
                 </xpath>
                 <xpath expr="//div[@name='product_lst_price']" position="after">
-                    <div t-if="record.type.raw_value == 'product'" style="color: green">Disponible: <field name="available_stock"/></div>
+                    <div t-if="record.type.raw_value == 'product'" style="color: green" attrs="{'invisible': [('available_stock', '=', 0)]}">Disponible: <field name="available_stock"/></div>
+                    <div t-if="record.type.raw_value == 'product'" style="color: red" attrs="{'invisible': [('available_stock', '&gt;', 0)]}">Disponible: <field name="available_stock"/></div>
                 </xpath>
             </field>
+        </record>
+
+        <!--        Vista lista -->
+        <record id="product_template_product_tree_extend" model="ir.ui.view">
+            <field name="name">product_template_product_tree_extend</field>
+            <field name="model">product.template</field>
+            <field name="inherit_id" ref="product.product_template_tree_view"/>
+            <field name="priority" eval="8"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='standard_price']" position="after">
+                    <field name="available_stock" decoration-warning="available_stock == 0" decoration-bf="1"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!--              Vista panel de control               -->
+        <record id="product_template_search_stock_form_extend" model="ir.ui.view">
+          <field name="name">product_template_search_stock_form_extend</field>
+          <field name="model">product.template</field>
+          <field name="inherit_id" ref="stock.product_template_search_form_view_stock"/>
+          <field name="arch" type="xml">
+            <xpath expr="//filter[@name='real_stock_available']" position="after">
+                <field name="available_stock" string="Disponible"/>
+                <filter name="available_stock" string="Disponible" domain="[('available_stock', '=', 1)]"/>
+            </xpath>
+          </field>
         </record>
     </data>
 </odoo>

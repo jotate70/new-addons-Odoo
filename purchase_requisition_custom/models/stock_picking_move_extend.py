@@ -1,12 +1,9 @@
 from odoo import fields, models, api
 from odoo.tools.float_utils import float_compare, float_is_zero, float_round
 from odoo.exceptions import UserError
-from odoo.tools.misc import clean_context, OrderedSet
+from odoo.tools.misc import OrderedSet
 from itertools import groupby
-from odoo.tools import groupby as groupbyelem
 from operator import itemgetter
-import json
-
 
 class stock_picking_extend(models.Model):
     _inherit = 'stock.move'
@@ -26,6 +23,7 @@ class stock_picking_extend(models.Model):
             In FIFO: value of the last unit that left the stock (automatically computed).
             Used to value the product when the purchase cost is not known (e.g. inventory adjustment).
             Used to compute margins on sale orders.""")
+
     standard_price_t = fields.Float(
         string='Costo',
         compute='_compute_standard_price_t',

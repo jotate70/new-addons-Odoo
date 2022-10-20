@@ -1,5 +1,5 @@
 from odoo import fields, models, api, _
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import UserError
 from odoo.tools import OrderedSet
 from odoo.tools.float_utils import float_compare, float_is_zero, float_round
 

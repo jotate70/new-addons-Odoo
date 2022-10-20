@@ -7,7 +7,6 @@
 # Github: jotate70
 # Cel. +57 3147754740
 #
-
 {
     'name': "Purchase Agreements Custom",
 
@@ -21,6 +20,10 @@
         15.5.0 Added option to pay for analytical accounting in stock picking.
         15.6.0 Automatic stock picking are added in purchase orders by destination location.
         15.6.1 error corrections.
+        15.7.0 Added monthly/quarterly/half-yearly/yearly budget support.
+        15.7.1 Error corrections.
+        15.7.2 Correction of duplicates in stock picking when canceling purchase orders and requisitions.
+        15.7.3 Multi currency support fix.
         """,
 
     'description': """
@@ -31,7 +34,7 @@
     'website': "https://www.andirent.co",
 
     'category': 'Purchase',
-    'version': '6.1',
+    'version': '7.3',
 
     # any module necessary for this one to work correctly
     'depends': ['purchase_requisition',
@@ -70,6 +73,7 @@
         'views/purchase_requisition_type_extend_view.xml',
         'views/product_category_extend.xml',
         'views/product_product_extend_view.xml',
+        'views/res_config_settings_views.xml',
         'report/report_purchaseorder_document_extend.xml',
         'report/report_deliveryslip_extend.xml',
         'wizard/stock_assign_serial_views_extend.xml',
@@ -79,5 +83,4 @@
     'application': True,
 
     'license': 'LGPL-3',
-
 }

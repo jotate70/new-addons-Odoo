@@ -1,6 +1,6 @@
-from odoo import fields, models, api, SUPERUSER_ID, _
+from odoo import fields, models, api, _
 from odoo.exceptions import UserError
-from odoo.tools.float_utils import float_compare, float_is_zero, float_round
+from odoo.tools.float_utils import float_compare, float_is_zero
 
 class stock_picking_extend(models.Model):
     _inherit = 'stock.picking'
@@ -9,6 +9,8 @@ class stock_picking_extend(models.Model):
     code = fields.Selection([('incoming', 'Receipt'), ('outgoing', 'Delivery'), ('internal', 'Internal Transfer')],
                             'Operación', related='picking_type_id.code')
     warehouse_id = fields.Many2one(comodel_name='stock.warehouse', string='A almacén', related='location_dest_id.warehouse_id')
+    location = fields.Many2one(comodel_name="location_warehouse", string='A Locación', compute='_compute_location_selection',
+                               search='_search_location_selection', help="Indica la locación/ciudad donde se encuentra el almacen")
     activity_id = fields.Integer(string='id actividad')     # id de la actividad asignada
     ticket_many2many = fields.Many2many(comodel_name='helpdesk.ticket',
                                         relation='x_helpdesk_ticket_purchase_requisition_rel',
@@ -45,6 +47,26 @@ class stock_picking_extend(models.Model):
                                          string='Responsable de almacen',
                                          related='picking_type_id.default_location_dest_id.warehouse_id.employee_id')
     act = fields.Char(string='No. Acta', help='El campo se utilza para relacionar los consecutivos de los números de stock picking, con la actas fisicas de movimiento de inventario')
+    purchase_bol = fields.Boolean('purchase_bol')
+
+    # función seleciona la location
+    def _compute_location_selection(self):
+        if self.warehouse_id:
+            self.location = self.warehouse_id.location_id
+        else:
+            self.location = False
+
+    # Busqueda campo location en campo computado
+    def _search_location_selection(self, operator, value):
+        vat = []
+        if value == '1':
+            data = self.env['stock.picking'].search([('location.code', 'in', ['BG1', 'MD1'])])
+            if data:
+                for rec in data:
+                    vat.append(rec.id)
+            else:
+                vat = []
+        return [('id', 'in', vat)]
 
     # Restricción de placas repetidas en la tranferencia
     @api.constrains('move_line_nosuggest_ids')
@@ -66,6 +88,33 @@ class stock_picking_extend(models.Model):
                     if line.plaque_id.id in exist_lines:
                         raise UserError('La placa %s ya se encuentra en la lista.' % line.plaque_id.name)
                     exist_lines.append(line.plaque_id.id)
+
+    # Restricción de placas aociadas a un serial/lote
+    @api.constrains('move_line_nosuggest_ids')
+    def _compute_constrains_plaque3(self):
+        for rec in self:
+            exist_lines = ['']
+            for line in rec.move_line_nosuggest_ids:
+                if line.plaque_id:
+                    rep = self.env['stock.production.lot'].search([('plaque_id', '=', line.plaque_id.ids)], limit=1)
+                    if rep:
+                        exist_lines.append(rep.ids)
+                        a = len(exist_lines)
+                        if a > 0 and line.lot_id != rep:
+                            raise UserError('La placa ya se encuentra asociada al serial %s.' % rep.name)
+
+    @api.constrains('move_line_ids_without_package')
+    def _compute_constrains_plaque4(self):
+        for rec in self:
+            exist_lines = ['']
+            for line in rec.move_line_ids:
+                if line.plaque_id:
+                    rep = self.env['stock.production.lot'].search([('plaque_id', '=', line.plaque_id.ids)], limit=1)
+                    if rep:
+                        exist_lines.append(rep.ids)
+                        a = len(exist_lines)
+                        if a > 0 and line.lot_id != rep:
+                            raise UserError('La placa ya se encuentra asociada al serial %s.' % rep.name)
 
     # seleciona divisa por defecto
     @api.onchange('picking_type_id')
@@ -110,7 +159,7 @@ class stock_picking_extend(models.Model):
                     'partner_id': self.partner_id.id,
                     'date': fields.datetime.now(),
                     'company_id': self.env.company.id,
-                    'amount': (rec.standard_price_t*a)/monetary.rate,
+                    'amount': (rec.quantity_done*rec.price_unit*a)/monetary.rate,
                     'unit_amount': rec.product_uom_qty,
                     'product_id': rec.product_id.id,
                     'product_uom_id': rec.product_uom.id,
@@ -126,7 +175,7 @@ class stock_picking_extend(models.Model):
                         'partner_id': self.partner_id.id,
                         'date': fields.datetime.now(),
                         'company_id': self.env.company.id,
-                        'amount': -(rec.standard_price_t * a) / monetary.rate,
+                        'amount': -(rec.quantity_done*rec.price_unit*a)/monetary.rate,
                         'unit_amount': rec.product_uom_qty,
                         'product_id': rec.product_id.id,
                         'product_uom_id': rec.product_uom.id,
@@ -142,7 +191,7 @@ class stock_picking_extend(models.Model):
                     'partner_id': self.partner_id.id,
                     'date': fields.datetime.now(),
                     'company_id': self.env.company.id,
-                    'amount': (rec.standard_price_t * a) / monetary.rate,
+                    'amount': (rec.quantity_done*rec.price_unit*a)/monetary.rate,
                     'unit_amount': rec.product_uom_qty,
                     'product_id': rec.product_id.id,
                     'product_uom_id': rec.product_uom.id,

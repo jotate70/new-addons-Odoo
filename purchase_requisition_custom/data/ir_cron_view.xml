@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!--     Acción planificada mes   -->
+        <record id="ir_cron_view_form_monthly_budget" model="ir.ui.view">
+            <field name="name">ir_cron_view_form_requisition</field>
+            <field name="model">ir.cron</field>
+            <field name="model_id" ref="hr.model_hr_employee"/>
+            <field name="state">code</field>
+            <field name="trigger">TRIGGER</field>
+            <field name="active" eval="True"/>
+        </record>
+        <!--     Acción planificada trimestral   -->
+        <record id="ir_cron_view_form_requisition_quasrtely_budget" model="ir.ui.view">
+            <field name="name">ir_cron_view_form_requisition</field>
+            <field name="model">ir.cron</field>
+            <field name="model_id" ref="hr.model_hr_employee"/>
+            <field name="state">code</field>
+            <field name="trigger">TRIGGER</field>
+            <field name="active" eval="True"/>
+        </record>
+        <!--     Acción planificada semestral   -->
+        <record id="ir_cron_view_form_requisition_biannual_budget" model="ir.ui.view">
+            <field name="name">ir_cron_view_form_requisition</field>
+            <field name="model">ir.cron</field>
+            <field name="model_id" ref="hr.model_hr_employee"/>
+            <field name="state">code</field>
+            <field name="trigger">TRIGGER</field>
+            <field name="active" eval="True"/>
+        </record>
+        <!--     Acción planificada anual   -->
+        <record id="ir_cron_view_form_requisition_annual_budget" model="ir.ui.view">
+            <field name="name">ir_cron_view_form_requisition</field>
+            <field name="model">ir.cron</field>
+            <field name="model_id" ref="hr.model_hr_employee"/>
+            <field name="state">code</field>
+            <field name="trigger">TRIGGER</field>
+            <field name="active" eval="True"/>
+        </record>
+    </data>
+</odoo>

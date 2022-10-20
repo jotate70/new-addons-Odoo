@@ -154,7 +154,6 @@
               <xpath expr="//header" position="replace">
                   <header>
                       <!--         draft state           -->
-                      <button name="action_notification" string="Notify" type="object" class="btn-primary"/>
                       <button name="action_in_progress_extend" states="draft" string="Confirmar" type="object" class="btn-primary"
                               confirm="¿Desea confirmar este acuerdo de compra?"/>
                       <!--         	in progress state           -->
@@ -170,7 +169,7 @@
                               context="{'default_requisition_id':active_id, 'default_user_id': False}"
                               groups="purchase.group_purchase_user"/>
                       <!--         	open state           -->
-                      <button name="action_done" states="open,ongoing" string="Cerrar" type="object" class="btn-primary"
+                      <button name="action_done" states="open,ongoing,received" string="Cerrar" type="object" class="btn-primary"
                                groups="purchase.group_purchase_user"/>
                       <button name="action_show_picking" states="draft,ongoing,in_progress,approved,assigned,open"
                               string="Refrescar" type="object"
@@ -204,6 +203,14 @@
               <xpath expr="//field[@name='user_id']" position="before">
                   <field name="assignees_id" groups="purchase.group_purchase_user" states="approved,assigned,open,done"/>
               </xpath>
+              <xpath expr="//div[@name='button_box']" position="after">
+                  <div class="oe_title pr-0">
+                      <h6 class="d-flex flex-row justify-content-between">
+                        <field name="state_received" widget="state_selection" class="ml-auto"
+                               attrs="{'readonly': [('state', 'in', ['draft', 'in_progress', 'approved', 'assigned', 'cancel'])]}"/>
+                      </h6>
+                  </div>
+              </xpath>
               <xpath expr="//field[@name='user_id']" position="after">
                   <field name="department_id" invisible=""/>
                   <field name="available" invisible="1"/>
@@ -219,6 +226,8 @@
                   <field name="cc" invisible="1"/>
                   <field name="len_id" invisible="1"/>
                   <field name="purchase_order_process" invisible="1"/>
+                  <field name="state_compute" invisible="1"/>
+                  <field name="approve_manager_budget_settings" invisible="1"/>
               </xpath>
               <xpath expr="//form[1]/sheet[1]/group[1]/group[2]/field[@name='picking_type_id']" position="attributes">
                 <attribute name="attrs">{"readonly": [["state","!=","draft"]]}</attribute>
@@ -258,22 +267,30 @@
                              attrs="{'invisible': ['|', ('time_off_related', '=', True), ('manager_id', '=', False)]}"/>
                       <field name="time_off" placeholder="Number" class="oe_inline" style="color: red"
                              attrs="{'invisible': ['|', ('time_off_related', '=', False), ('manager_id', '=', False)]}"/>
+                      <span class="oe_read_only" attrs="{'invisible': ['|', '|', ('state_compute', '=', False),
+                      ('manager_id', '=', False), ('approve_manager_budget_settings', '=', False)]}"> --> Saldo: </span>
+                      <field name="budget_available_manager" class="oe_inline" style="color: green"
+                             attrs="{'invisible': ['|', '|', '|', ('state_compute', '=', False), ('manager_id', '=', False),
+                             ('budget_available_manager', '&lt;', 0), ('approve_manager_budget_settings', '=', False)]}"/>
+                      <field name="budget_available_manager" class="oe_inline" style="color: red"
+                             attrs="{'invisible': ['|', '|', '|', ('state_compute', '=', False), ('manager_id', '=', False),
+                             ('budget_available_manager', '&gt;', 0), ('approve_manager_budget_settings', '=', False)]}"/>
                   </div>
               </field>
           </field>
       </record>
 
       <!--   tree view     -->
-        <record id="purchase_requisition_custom.location_warehouse_list_view" model="ir.ui.view">
-            <field name="name">purchase_requisition_custom.location_warehouse_list_view</field>
-            <field name="model">location_warehouse</field>
-            <field name="arch" type="xml">
-                <tree string="tree" editable="bottom">
-                    <field name="name"/>
-                    <field name="code"/>
-                </tree>
-            </field>
-        </record>
+      <record id="purchase_requisition_custom.location_warehouse_list_view" model="ir.ui.view">
+          <field name="name">purchase_requisition_custom.location_warehouse_list_view</field>
+          <field name="model">location_warehouse</field>
+          <field name="arch" type="xml">
+              <tree string="tree" editable="bottom">
+                  <field name="name"/>
+                  <field name="code"/>
+              </tree>
+          </field>
+      </record>
 
       <record id="purchase_requisition_extend_list_view" model="ir.ui.view">
           <field name="name">purchase_requisition_extend_list_view</field>
@@ -287,6 +304,9 @@
                   <field name="assignees_id"/>
               </xpath>
               <xpath expr="//field[@name='state']" position="after">
+                  <field name="state_received" widget="state_selection" class="ml-auto" optional="show"
+                         attrs="{'readonly': [('state', 'in', ['draft', 'in_progress', 'approved', 'assigned', 'cancel'])]}"
+                         groups="purchase.group_purchase_user"/>
                   <field name="purchase_order_process" groups="purchase.group_purchase_user" invisible="1"/>
                   <field name="purchase_order_many2many" optional="show" widget="many2many_tags"
                          options="{'color_field': 'color'}" groups="purchase.group_purchase_user"/>

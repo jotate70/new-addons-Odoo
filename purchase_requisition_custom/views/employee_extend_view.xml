@@ -10,20 +10,103 @@
           <page string="Requisiciones">
             <group>
               <group string="Presupuesto asignado">
-                <field name="active_budget"/>
-                <field name="general_manager" attrs="{'invisible': [('active_budget', '=', False)]}"/>
+                <field name="active_budget" invisible=""/>
                 <field name="parent_optional_id" attrs="{'invisible': [('general_manager', '=', False)]}"/>
-                <field name="budget"
-                       attrs="{'invisible': ['|', ('general_manager', '=', True), ('active_budget', '=', False)]}"/>
+                <field name="budget"/>
+                <field name="budget_discount" invisible="1"/>
+                <field name="budget_available" invisible="1"/>
+                <field name="collaborators_sum" invisible="1"/>
+                <field name="budget_available_total"/>
+                <field name="person_budget"/>
+                <field name="approve_manager_budget_settings" invisible="1"/>
               </group>
               <group string="Almacen a disposición">
                 <field name="manager_warehouse" widget="many2many_tags" options="{'no_create':true}"
-                        domain="stock_warehouse_domain"/>
+                       domain="stock_warehouse_domain"/>
                 <field name="stock_warehouse_domain" invisible="1"/>
               </group>
             </group>
           </page>
         </xpath>
+        <!--            Vista concatenada         -->
+        <!--        Vista botones de presupuesto     -->
+        <field name="active_budget" position="attributes">
+          <attribute name="invisible">1</attribute>
+        </field>
+        <field name="active_budget" position="after">
+          <label for="general_manager" string="Es responsable de presupuesto."/>
+          <div>
+            <field name="active_budget" class="oe_inline"/>
+            <label for="general_manager" string="Sin tope de presupuesto." attrs="{'invisible': [('active_budget', '=', False)]}"/>
+            <field name="general_manager" class="oe_inline" attrs="{'invisible': [('active_budget', '=', False)]}"/>
+          </div>
+        </field>
+        <!--        Vista presupuesto     -->
+        <field name="budget" position="attributes">
+          <attribute name="invisible">1</attribute>
+        </field>
+        <field name="budget" position="after">
+          <label for="budget_len" string="Presupuesto"
+                 attrs="{'invisible': ['|', '|', ('general_manager', '=', True), ('active_budget', '=', False),
+                 ('approve_manager_budget_settings', '=', False)]}"/>
+          <div>
+            <span class="oe_read_only" attrs="{'invisible': ['|', '|', ('general_manager', '=', True), ('active_budget', '=', False),
+            ('approve_manager_budget_settings', '=', False)]}"> $ </span>
+            <field name="budget" attrs="{'invisible': ['|', '|', ('general_manager', '=', True), ('active_budget', '=', False),
+             ('approve_manager_budget_settings', '=', False)]}"
+                   class="oe_inline" style="color: blue" placeholder="100.000.000,00" />
+            <span class="oe_read_only" attrs="{'invisible': ['|', '|', ('general_manager', '=', True), ('active_budget', '=', False),
+            ('approve_manager_budget_settings', '=', False)]}"> - </span>
+            <field name="budget_len" class="oe_inline"
+                   attrs="{'invisible': ['|', '|', ('general_manager', '=', True), ('active_budget', '=', False),
+                   ('approve_manager_budget_settings', '=', False)]}"/>
+          </div>
+        </field>
+        <!--        Vista presupuesto actual     -->
+        <field name="budget_available_total" position="attributes">
+          <attribute name="invisible">1</attribute>
+        </field>
+        <field name="budget_available_total" position="after">
+          <label for="budget_available_total" string="Saldo"
+                 attrs="{'invisible': ['|', '|', ('general_manager', '=', True), ('active_budget', '=', False),
+                 ('approve_manager_budget_settings', '=', False)]}"/>
+          <div>
+            <span class="oe_read_only" attrs="{'invisible': ['|', '|', ('general_manager', '=', True), ('active_budget', '=', False),
+            ('approve_manager_budget_settings', '=', False)]}"> $ </span>
+            <field name="budget_available_total" attrs="{'invisible': ['|', '|', '|', ('general_manager', '=', True),
+            ('active_budget', '=', False), ('budget_available', '&lt;', 0), ('approve_manager_budget_settings', '=', False)]}"
+                   class="oe_inline" style="color: green"/>
+            <span class="oe_read_only" attrs="{'invisible': ['|', '|', '|', ('general_manager', '=', True),
+            ('active_budget', '=', False), ('budget_available', '&lt;', 0), ('approve_manager_budget_settings', '=', False)]}"> - </span>
+            <field name="currency_id" attrs="{'invisible': ['|', '|', '|', ('general_manager', '=', True),
+            ('active_budget', '=', False), ('budget_available', '&lt;', 0), ('approve_manager_budget_settings', '=', False)]}"
+                   class="oe_inline"/>
+             <field name="budget_available_total" attrs="{'invisible': ['|', '|', '|', ('general_manager', '=', True),
+            ('active_budget', '=', False), ('budget_available', '&gt;', 0), ('approve_manager_budget_settings', '=', False)]}"
+                    class="oe_inline" style="color: red"/>
+            <span class="oe_read_only" attrs="{'invisible': ['|', '|', '|', ('general_manager', '=', True),
+            ('active_budget', '=', False), ('budget_available', '&gt;', 0), ('approve_manager_budget_settings', '=', False)]}"> - </span>
+            <field name="currency_id" attrs="{'invisible': ['|', '|', '|', ('general_manager', '=', True),
+            ('active_budget', '=', False), ('budget_available', '&gt;', 0), ('approve_manager_budget_settings', '=', False)]}"
+                   class="oe_inline"/>
+          </div>
+        </field>
+        <!--        Vista monto de aprobación    -->
+        <field name="person_budget" position="attributes">
+          <attribute name="invisible">1</attribute>
+        </field>
+        <field name="person_budget" position="after">
+          <label for="person_budget" string="Tope de aprobación"
+                 attrs="{'invisible': ['|', ('general_manager', '=', True), ('active_budget', '=', False)]}"/>
+          <div>
+            <span class="oe_read_only" attrs="{'invisible': ['|', ('general_manager', '=', True), ('active_budget', '=', False)]}"> $ </span>
+            <field name="person_budget" attrs="{'invisible': ['|', ('general_manager', '=', True), ('active_budget', '=', False)]}"
+                   class="oe_inline" style="color: green"/>
+            <span class="oe_read_only" attrs="{'invisible': ['|', ('general_manager', '=', True), ('active_budget', '=', False)]}"> - </span>
+            <field name="currency_id" attrs="{'invisible': ['|', ('general_manager', '=', True), ('active_budget', '=', False)]}" class="oe_inline"/>
+          </div>
+        </field>
+        <!--            Atributos         -->
         <xpath expr="//field[@name='user_id']" position="attributes">
           <attribute name="required">1</attribute>
         </xpath>

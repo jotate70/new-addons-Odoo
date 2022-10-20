@@ -1,4 +1,5 @@
 from odoo import fields, models, api
+from odoo.exceptions import UserError
 
 class ProductCategory(models.Model):
     _inherit = "product.category"
@@ -14,3 +15,12 @@ class ProductCategory(models.Model):
                                        help='Puedes indicar el almacen principal, solo se puede selecionar uno,'
                                             'Sirve para indicar la ubicación de transito por defecto, cuando no se tiene'
                                             'una ubicación de transito en categorias de productos')
+
+    # Restricción ubicación de transito por ciudad
+    @api.constrains('location_id')
+    def _compute_constrains_location(self):
+        for line in self.location_id:
+            for line2 in self.location_id:
+                if line != line2:
+                    if line.location_id2 == line2.location_id2:
+                        raise UserError('Ya esxiste una ubicación de transito en %s. solo puedes agregar una ubicación de transito por locación.' % line.location_id2.name)

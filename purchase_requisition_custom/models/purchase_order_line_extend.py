@@ -1,3 +1,4 @@
+from datetime import datetime, time
 from odoo import fields, models, api
 import json
 
@@ -23,18 +24,21 @@ class PurchaseOrderLine(models.Model):
         virtual_partner_location = self.env['stock.location'].search([('usage', '=', 'supplier')], limit=1)
         self.location_id = virtual_partner_location
 
-    # Seleciona la ubicación de transito
-    @api.onchange('warehouse_id')
-    def _compute_transit_location(self):
-        for rec in self:
-            self.write({'transit_location_id': rec.warehouse_id.transit_location_id})
-            self.write({'location_dest_id': False})
+#     # Seleciona la ubicación de transito
+#     @api.onchange('warehouse_id')
+#     def _compute_transit_location(self):
+#         for rec in self:
+#             self.write({'transit_location_id': rec.warehouse_id.transit_location_id})
+#             self.write({'location_dest_id': False})
 
     # Seleciona la cuenta analitica
     @api.onchange('location_dest_id')
     def _compute_account_analytic_id(self):
         for rec in self:
-            self.write({'account_analytic_id': rec.location_dest_id.account_analytic_id})
+            if rec.location_dest_id:
+                rec.write({'account_analytic_id': rec.location_dest_id.account_analytic_id})
+            else:
+                rec.write({'account_analytic_id': False})
 
     # Dominio dinamico de ubicación de destino
     @api.depends('warehouse_id')
@@ -44,6 +48,7 @@ class PurchaseOrderLine(models.Model):
                 [('warehouse_id', '=', rec.warehouse_id.ids),
                  ('usage', '=', ['internal'])]
             )
+
 
 
 

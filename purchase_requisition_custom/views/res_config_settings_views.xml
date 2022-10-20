@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--                       Herencia vista ajustes de empleados                            -->
+    <record id="res_config_settings_requisition_hr_view_form" model="ir.ui.view">
+        <field name="name">res_config_settings_requisition_hr_view_form</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="70"/>
+        <field name="inherit_id" ref="hr.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@data-string='Employees']" position="inside">
+                <h2>Requisiciones</h2>
+                <div class="row mt16 o_settings_container" id="approve_manager_budget_settings">
+                    <div class="col-12 col-lg-6 o_setting_box">
+                        <div class="o_setting_left_pane">
+                            <field name="approve_manager_budget_settings" widget="upgrade_boolean"/>
+                        </div>
+                        <div class="o_setting_right_pane">
+                            <label for="approve_manager_budget_settings"/>
+                            <div class="text-muted">
+                                Activar presupuesto por rango de tiempos a responsables
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+    <!--                        Herencia vista ajustes de inventarios                          -->
+    <record id="res_config_settings_requisition_stock_view_form" model="ir.ui.view">
+        <field name="name">res_config_settings_requisition_stock_view_form</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="70"/>
+        <field name="inherit_id" ref="stock.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@data-string='Inventory']" position="inside">
+                <h2>Requisiciones</h2>
+                <div class="row mt16 o_settings_container" id="account_analityc_requisition_settings">
+                    <div class="col-12 col-lg-6 o_setting_box">
+                        <div class="o_setting_left_pane">
+                            <field name="account_analityc_requisition_settings" widget="upgrade_boolean"/>
+                        </div>
+                        <div class="o_setting_right_pane">
+                            <label for="account_analityc_requisition_settings"/>
+                            <div class="text-muted">
+                                Activar cuentas analíticas en tranferencias de inventarios
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime, time
 
 from odoo import api, fields, models, exceptions, _
 from odoo.exceptions import UserError
@@ -10,6 +11,8 @@ PURCHASE_REQUISITION_STATES = [
     ('approved', 'Aprobado'),
     ('assigned', 'Asignado'),
     ('open', 'Bid Selection'),
+    ('received', 'Recibido'),
+    ('blocked', 'Pausado'),
     ('done', 'Closed'),
     ('cancel', 'Cancelled')
 ]
@@ -17,20 +20,31 @@ PURCHASE_REQUISITION_STATES = [
 class purchase_requisition_extend(models.Model):
     _inherit = 'purchase.requisition'
 
+    state_received = fields.Selection([
+        ('normal', 'En progreso'),
+        ('done', 'Recibido'),
+        ('blocked', 'Pausado')], string='Etapa', default='normal')
+
+    approve_manager_budget_settings = fields.Boolean(string='Activar presupuesto',
+                                                     related='manager_id.approve_manager_budget_settings')
     state = fields.Selection(PURCHASE_REQUISITION_STATES,
                              'Status', tracking=True, required=True,
                              copy=False, default='draft')
     state_blanket_order = fields.Selection(PURCHASE_REQUISITION_STATES, compute='_set_state')
     department_id = fields.Many2one(comodel_name='hr.department', related='user_id.department_id',
                                    string='Departamento', store=True)
-    manager_id = fields.Many2one(comodel_name='hr.employee', related='user_id.department_id.manager_id', string='Jefe del área',
+    manager_id = fields.Many2one(comodel_name='hr.employee', related='user_id.employee_id.department_id.manager_id', string='Jefe del área',
                              help='Jefe inmediato respondable de su aprobación')
+    budget_available_manager = fields.Float(string='Saldo actual', related='manager_id.budget_available_total',
+                                            help='Indica el saldo del presupuesto a la fecha.')
+    state_compute = fields.Boolean(string='boolean state', compute='_compute_login',
+                                   help='permite mostrar o ucultar el saldo de presupuesto mediante un estado')
     manager2_id = fields.Many2one(comodel_name='hr.employee', related='manager_id.parent_id', string='Aprobación alternativa',
                              help='Cuando el jefe inmediato se encuentra ausente, debe aprobar el siguiente respondable')
     available = fields.Boolean(string='habilitado', compute='_domain_ochange_x_partner')
     activity_id = fields.Integer(string='id actividad')
     # Obtiene la fecha y hora actual
-    current_date = fields.Datetime('Fecha actual', required=False, readonly=False, select=True,
+    current_date = fields.Datetime('Fecha actual', readonly=False, select=True,
                                    default=lambda self: fields.datetime.now())
     time_off = fields.Char(string='Disponibilidad', compute='_compute_number_of_days')
     time_off_related = fields.Boolean(string='Ausencia', related='manager_id.is_absent')
@@ -63,6 +77,24 @@ class purchase_requisition_extend(models.Model):
                                         column1='purchase_requisition_id', column2='purchase_order_id',
                                         string='Ordenes de compra')
 
+    # Cambios de estado
+    @api.onchange('state_received')
+    def _compute_state_received(self):
+        if self.state in ['open', 'received', 'blocked']:
+            if self.state_received == 'normal':
+                self.write({'state': 'open'})
+            elif self.state_received == 'done':
+                self.write({'state': 'received'})
+            elif self.state_received == 'blocked':
+                self.write({'state': 'blocked'})
+
+    # Permite mostrar o ucultar saldo actual de los responsables de aprobación
+    def _compute_login(self):
+        if self.manager_id == self.env.user.employee_id:
+            self.state_compute = True
+        else:
+            self.state_compute = False
+
     # Restricción de fecha anterior a la actual en fecha limite
     @api.onchange('date_end')
     def _compute_coinstrain_ordering_date(self):
@@ -71,7 +103,6 @@ class purchase_requisition_extend(models.Model):
                 expired = fields.Date.from_string(rec.date_end) - fields.Date.from_string(fields.datetime.now())
                 if expired.days < 0:
                     raise UserError('No puedes colocar una fecha anterior a la actual')
-
 
     # Fecha de pedido con fecha de creación
     @api.onchange('line_ids')
@@ -87,7 +118,8 @@ class purchase_requisition_extend(models.Model):
     # Acción de button tranferencia inmediata
     def action_stock_picking_create(self):
         # Contador de tranferencias
-        comprob = self.env['stock.picking'].search([('requisition_id', "=", self.id), ('stage', '=', [1, 2])])
+        comprob = self.env['stock.picking'].search([('requisition_id', "=", self.id), ('stage', '=', [1, 2]),
+                                                    ('purchase_bol', '=', False)])
         a = len(comprob.ids)
         if a == 0:
             self.write({'x_stock_picking_transit': [(5)]})  # Limpiar/deslinkear registros del modelo
@@ -183,7 +215,6 @@ class purchase_requisition_extend(models.Model):
                 for l2 in transit_stock:
                     transit_stock_picking = self.env['stock.location'].search([('id', '=', l2)], limit=1)
                     create_vals = {'stage': 1,
-                                   #'state': 'assigned',
                                    'origin': self.name,
                                    'scheduled_date': self.date_end,
                                    'picking_type_id': transit_stock_picking.transit_location_id.warehouse_id.int_type_id.id,
@@ -272,7 +303,6 @@ class purchase_requisition_extend(models.Model):
                     if l3.stage == 1 and l3.quantity != 0:
                         create_vals2 = {
                             'stage': 1,
-                            #'state': 'assigned',
                             'origin': self.name,
                             'name': l3.name_picking,
                             'picking_id': l3.stock_picking_id.id,
@@ -287,7 +317,7 @@ class purchase_requisition_extend(models.Model):
                         self.env['stock.move'].sudo().create(create_vals2)
             # Confirma stock picking en etapa 1
                 for rect in self.purchase_ids2:
-                    if rect.stage == 1:
+                    if rect.stage == 1 and rect.state != 'cancel':
                         rect.action_confirm()
             # ------------------------------------------- PASO 2 ------------------------------------------
             c = 0
@@ -406,8 +436,13 @@ class purchase_requisition_extend(models.Model):
         if self.time_off_related == False:
             self.time_off = 'Disponible'
         else:
-           self.time_off = 'Ausente'
-           self.write({'manager2_id': self.manager_id.parent_id})
+            self.time_off = 'Ausente'
+            # Para el caso de cuando no es un gerente general o una persona con limite de presupuesto
+            if self.manager_id.general_manager == False:
+                self.write({'manager2_id': self.manager_id.parent_id})
+            # Para el caso de cuando es un gerente general o una persona sin tope de presupuesto
+            else:
+                self.write({'manager2_id': self.manager_id.parent_optional_id})
         return self.time_off
 
     # Sirve para indicar si está habilitado para aprobar solicitudes de compra
@@ -424,9 +459,9 @@ class purchase_requisition_extend(models.Model):
         for requisition in self:
             for requisition_line in requisition.line_ids:
                 requisition_line.supplier_info_ids.unlink()
-            requisition.purchase_ids.button_cancel()
             for po in requisition.purchase_ids:
                 po.message_post(body=_('Cancelled by the agreement associated to this quotation.'))
+                po.button_cancel()
         self.write({'state': 'cancel'})
         #  Marca actividad como hecha de forma automatica
         new_activity = self.env['mail.activity'].search([('id', '=', self.activity_id)], limit=1)
@@ -445,9 +480,9 @@ class purchase_requisition_extend(models.Model):
             for requisition in self:
                 for requisition_line in requisition.line_ids:
                     requisition_line.supplier_info_ids.unlink()
-                requisition.purchase_ids.button_cancel()
                 for po in requisition.purchase_ids:
                     po.message_post(body=_('Cancelled by the agreement associated to this quotation.'))
+                    po.button_cancel()
             self.write({'state': 'cancel'})
         else:
             raise UserError('No cuenta con el permiso para rechazar acuerdos de compra, por favor comunicarse con su jefe inmediato para aprobar este acuerdo de compra.')
@@ -468,7 +503,6 @@ class purchase_requisition_extend(models.Model):
             else:
                 product.append(rec.product_id.name)
             b = len(a)
-
         if self.manager_id or self.user_id.employee_id.general_manager == True:
             if b == c:
                 self.action_show_picking()  # Función boton refrescar disponibilidad
@@ -485,7 +519,7 @@ class purchase_requisition_extend(models.Model):
                             raise UserError(_('You cannot confirm the blanket order without quantity.'))
                         requisition_line.create_supplier_info()
                     self.write({'state': 'ongoing'})
-                # Comprueba el tipo de acuerdo de compra, si requiere o no requiere acuerdo de compra
+                # Comprueba el tipo de acuerdo de compra, si requiere o no requiere aprobación
                 elif self.type_id.disable_approval == False:
                     #     Crear actividad al jefe inmediato si esta disponible
                     if self.manager_id and self.time_off_related == False:
@@ -581,7 +615,7 @@ class purchase_requisition_extend(models.Model):
     # función que llama función confirmar en stock picking
     def call_action_confirm(self):
         for rec in self.purchase_ids2:
-            if rec.stage == 1:
+            if rec.stage == 1 and rec.state != 'cancel':
                 rec.action_confirm()
 
     # Extención de función cerrar
@@ -599,6 +633,7 @@ class purchase_requisition_extend(models.Model):
             for requisition_line in requisition.line_ids:
                 requisition_line.supplier_info_ids.unlink()
         self.write({'state': 'done'})
+        self.write({'state_received': 'done'})
 
     # función cambio de estado
     def update_state_open_requisition(self):
@@ -612,20 +647,8 @@ class purchase_requisition_extend(models.Model):
         self.write({'assignees_id': False})
         self.write({'x_stock_picking_transit': False})
 
-    # Notificación
-    def action_notification(self):
-        notification_title = 'Validación de requisción'
-        notification_message = 'A validado con exito la requisición'
-        notification_type = 'success'
-        return {
-            'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': notification_title,
-                'message': notification_message,
-                'type': notification_type,
-            }
-        }
+
+
 
 
 

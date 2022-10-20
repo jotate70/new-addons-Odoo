@@ -25,7 +25,7 @@ class StockQuant(models.Model):
         ('supplier', 'Almacen Cliente'),
         ('internal', 'Almacen Interno'),
         ('customer', 'Almacen Proveedor')], string='Tipo de almacén',
-        index=True, required=True, related='warehouse_id.usage',
+        index=True, related='warehouse_id.usage',
         help="* Vendor Location: Virtual location representing the source location for products coming from your vendors"
              "\n* Internal Location: Physical locations inside your own warehouses,"
              "\n* Customer Location: Virtual location representing the destination location for products sent to your customers")
@@ -35,7 +35,6 @@ class StockQuant(models.Model):
                                    in_date=None, fee_unit=fee_unit, contract_date=contract_date, contract_date_end=contract_date_end):
         """ Increase or decrease `reserved_quantity` of a set of quants for a given set of
         product_id/location_id/lot_id/package_id/owner_id.
-
         :param product_id:
         :param location_id:
         :param quantity:
