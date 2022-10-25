@@ -101,7 +101,7 @@
                                     <field name="stock_quant_ids" widget="many2many_tags" optional="hide"/>
                                 </tree>
                             </field>
-                            <field name="product_return_moves2" nolabel="1" invisible="">
+                            <field name="product_return_moves2" nolabel="1" invisible="1">
                                 <tree editable="top" create="1">
                                     <field name="product_id" options="{'no_create': True, 'no_open': True}" force_save="1"/>
                                     <field name="lot_id"/>

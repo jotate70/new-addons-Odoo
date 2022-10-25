@@ -64,6 +64,12 @@ class ReturnPicking(models.TransientModel):
     related_stock_picking = fields.Boolean(string="relation ticket")
     product_return_moves2 = fields.One2many('return_picking_line_detail', 'wizard_id', 'Moves')
 
+    # zero compute in field = 0
+    @api.onchange('stock_quant_ids')
+    def _def_compute_quantity_transit(self):
+        for rec in self.stock_quant_ids:
+            if rec.quantity_transit == 0:
+                rec.quantity_transit = 1
 
     @api.onchange('location')
     def _reset_warehouse_id(self):
@@ -74,11 +80,9 @@ class ReturnPicking(models.TransientModel):
     def _compute_stock_picking(self):
         return_id = 0
         return_dest = 0
-
         if self.product_return_moves and self.related_stock_picking == True:
             self.product_return_moves = False
             self.product_return_moves2 = False
-
         for rec1 in self.mapped('stock_quant_ids').product_id:
             qty = 0
             product = []
@@ -87,7 +91,7 @@ class ReturnPicking(models.TransientModel):
                 if rec1.id == rec2.product_id.id:
                     product.append(rec1.id)
                     quant.append(rec2.id)
-                    qty = rec2.quantity + qty
+                    qty = rec2.quantity_transit + qty
                     if rec2.product_id.categ_id.return_location_id:
                         for rec3 in rec2.product_id.categ_id.return_location_id:
                             if rec3.location_id2 == self.location:
@@ -119,7 +123,6 @@ class ReturnPicking(models.TransientModel):
                                                           'contract_date': rec3.contract_date,
                                                           'contract_date_end': rec3.contract_date_end,
                                                           })]})
-
 
     # Seleciona ubicación de destino (no se usa, es campo obligatorio por defecto)
     @api.onchange('stock_quant_ids')
@@ -168,8 +171,8 @@ class ReturnPicking(models.TransientModel):
         if self.location_origin_id:
             for rec in self:
                 rec.stock_quant_domain = json.dumps(
-                    [('location_id', "=", rec.location_origin_id.ids), ('usage', '=', 'internal'),
-                     ('location_id.usage', '=', 'internal'), ('available_quantity', '>', 0.0),
+                    [('location_id', "=", rec.location_origin_id.ids),
+                     ('location_id.usage', 'in', ['internal', 'supplier', 'customer']), ('available_quantity', '>', 0.0), ('quantity', '>', 0.0),
                      ])
         else:
             self.stock_quant_domain = json.dumps([])
@@ -189,7 +192,6 @@ class ReturnPicking(models.TransientModel):
     def _domain_pickings_id(self):
         if self.location_origin_id:
             for rec in self:
-                # rec.picking_domain_ids = json.dumps([('id', 'in', self.mapped('suitable_picking_ids').filtered(lambda m: m.location_dest_id == rec.location_origin_id).ids)])
                 rec.picking_domain_ids = json.dumps([('id', 'in', self.mapped('suitable_picking_ids').filtered(
                     lambda m: m.location_dest_id == rec.location_origin_id).ids)])
         else:
@@ -214,10 +216,10 @@ class ReturnPicking(models.TransientModel):
                     continue
                 if rec.move_dest_ids:
                     move_dest_exists = True
-            product_return_moves_data = dict(product_return_moves_data_tmpl)
-            product_return_moves_data.update(
-                self._prepare_stock_return_picking_line_vals_from_move_ids(rec))
-            product_return_moves.append((0, 0, product_return_moves_data))  # Se añade registro en la variable flotante
+                product_return_moves_data = dict(product_return_moves_data_tmpl)
+                product_return_moves_data.update(
+                    self._prepare_stock_return_picking_line_vals_from_move_ids(rec))
+                product_return_moves.append((0, 0, product_return_moves_data))  # Se añade registro en la variable flotante
             if self.stock_picking_ids and not product_return_moves:
                 raise UserError(
                     _("No products to return (only lines in Done state and not fully returned yet can be returned)."))
@@ -254,11 +256,13 @@ class ReturnPicking(models.TransientModel):
 
     # Retorna los valores para generar el stock picking devolución en modo devolución por tranferencias
     def _prepare_picking_default_values(self):
+        operation_type = self.env['stock.picking.type'].search([('warehouse_id', '=', self.warehouse_id.ids), ('code', '=', 'incoming')], limit=1, order='id DESC')
         # Stock picking origin concatenate
         if self.picking_id:
             return {
                 'move_lines': [],
-                'picking_type_id': self.picking_id.picking_type_id.return_picking_type_id.id or self.picking_id.picking_type_id.id,
+                # 'picking_type_id': self.picking_id.picking_type_id.return_picking_type_id.id or self.picking_id.picking_type_id.id,
+                'picking_type_id': operation_type.id,
                 'state': 'draft',
                 'origin': _("Return of %s") % self.picking_id.name,
                 'location_id': self.picking_id.location_dest_id.id,
@@ -271,7 +275,8 @@ class ReturnPicking(models.TransientModel):
                 type_operation = rec.picking_type_id.return_picking_type_id.id or rec.picking_type_id.id
             return {
                 'move_lines': [],
-                'picking_type_id': type_operation,
+                # 'picking_type_id': type_operation,
+                'picking_type_id': operation_type.id,
                 'state': 'draft',
                 'origin': _("Return of %s") % string,
                 'location_id': self.location_origin_id.id,
@@ -360,10 +365,11 @@ class ReturnPicking(models.TransientModel):
                 raise UserError('No se ha establecido una ubicación de devoluciones en la categoría del producto, %s.' % rec1.product_id.name)
         for rec2 in self.mapped('product_return_moves').return_location_id:
             picking_type = self.env['stock.location'].search([('id', '=', rec1.return_location_id.id)], limit=1)
+            operation_type = self.env['stock.picking.type'].search([('warehouse_id', '=', picking_type.warehouse_id.ids), ('code', '=', 'incoming')], limit=1, order='id DESC')
             create_vals = {'partner_id': self.partner_id.id,
                            'origin': 'return' + ' [' + self.warehouse_id.name + ']',
                            'scheduled_date': fields.datetime.now(),
-                           'picking_type_id': picking_type.warehouse_id.pick_type_id.id,
+                           'picking_type_id': operation_type.id,
                            'location_id': self.location_origin_id.id,
                            'location_dest_id': rec2.id,
                            'ticket_return': self.ticket_id.id,
@@ -409,6 +415,7 @@ class ReturnPicking(models.TransientModel):
             # stock_picking1.action_assign()
         # Add tickets in helpdesk
         self.ticket_id.compute_picking_ids(picking)
+
 
 
 

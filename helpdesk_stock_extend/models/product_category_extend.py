@@ -7,7 +7,7 @@ class ProductCategory(models.Model):
     return_location_id = fields.Many2many(comodel_name='stock.location', relation='x_product_category_return_location_rel',
                                           column1='product_category_id', column2='stock_location_id',
                                           string='Ubicaciones de devolución', help='Ubicaciones para devolcuciones que puede usar la categoria del producto',
-                                          domain="[('usage', '=', 'transit'), ('return_location', '=', True)]", required=True)
+                                          domain="[('usage', 'in', ['transit', 'internal']), ('return_location', '=', True)]", required=True)
 
     # Restricción ubicación de retorno por ciudad
     @api.constrains('return_location_id')
