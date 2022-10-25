@@ -378,6 +378,9 @@ class ReturnPicking(models.TransientModel):
             stock_picking1 = self.env['stock.picking'].create(create_vals)
             # Guarda variables de retorno del stock picking y tipo de operación
             picking.append(stock_picking1.id)
+            # Guarda los pickings anteriores
+            for rec_1 in self.ticket_id.picking_ids:
+                picking.append(rec_1.id)
             # operation.append(stock_picking1.picking_type_id)
             # return picking, operation
             # Código que crea una nueva actividad
