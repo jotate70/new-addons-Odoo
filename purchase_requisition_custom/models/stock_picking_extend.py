@@ -9,6 +9,8 @@ class stock_picking_extend(models.Model):
     code = fields.Selection([('incoming', 'Receipt'), ('outgoing', 'Delivery'), ('internal', 'Internal Transfer')],
                             'Operación', related='picking_type_id.code')
     warehouse_id = fields.Many2one(comodel_name='stock.warehouse', string='A almacén', related='location_dest_id.warehouse_id')
+    location = fields.Many2one(comodel_name="location_warehouse", string='A Locación', compute='_compute_location_selection',
+                               search='_search_location_selection', help="Indica la locación/ciudad donde se encuentra el almacen")
     activity_id = fields.Integer(string='id actividad')     # id de la actividad asignada
     ticket_many2many = fields.Many2many(comodel_name='helpdesk.ticket',
                                         relation='x_helpdesk_ticket_purchase_requisition_rel',
@@ -46,6 +48,35 @@ class stock_picking_extend(models.Model):
                                          related='picking_type_id.default_location_dest_id.warehouse_id.employee_id')
     act = fields.Char(string='No. Acta', help='El campo se utilza para relacionar los consecutivos de los números de stock picking, con la actas fisicas de movimiento de inventario')
     purchase_bol = fields.Boolean('purchase_bol')
+
+    # función seleciona la location
+    def _compute_location_selection(self):
+        for rec in self:
+            if rec.warehouse_id:
+                rec.location = rec.warehouse_id.location_id
+            else:
+                rec.location = False
+
+    # Busqueda campo location en campo computado
+    def _search_location_selection(self, operator, value):
+        value_1 = value.upper() # Convierte a mayuscula
+        vat = []
+        num = False
+        if value_1 == '1' or value_1 == 'BOGOTA':
+            num = 1
+        if value_1 == '2' or value_1 == 'MEDELLIN':
+            num = 2
+        if value_1 == '3' or value_1 == 'BARRANQUILLA':
+            num = 3
+        if value_1 == '4' or value_1 == 'CALI':
+            num = 4
+        data = self.env['stock.picking'].search([('location_dest_id.location_id2', '=', num)])
+        if data:
+            for rec in data:
+                vat.append(rec.id)
+        else:
+            vat = []
+        return [('id', 'in', vat)]
 
     # Restricción de placas repetidas en la tranferencia
     @api.constrains('move_line_nosuggest_ids')
@@ -220,7 +251,6 @@ class stock_picking_extend(models.Model):
         ctx = dict(self.env.context)
         ctx.pop('default_immediate_transfer', None)
         self = self.with_context(ctx)
-
         # Sanity checks.
         pickings_without_moves = self.browse()
         pickings_without_quantities = self.browse()
@@ -248,7 +278,6 @@ class stock_picking_extend(models.Model):
                         if not line.lot_name and not line.lot_id:
                             pickings_without_lots |= picking
                             products_without_lots |= product
-
         if not self._should_show_transfers():
             if pickings_without_moves:
                 raise UserError(_('Please add some items to move.'))
@@ -266,7 +295,6 @@ class stock_picking_extend(models.Model):
                 message += _('\n\nTransfers %s: You need to supply a Lot/Serial number for products %s.') % (', '.join(pickings_without_lots.mapped('name')), ', '.join(products_without_lots.mapped('display_name')))
             if message:
                 raise UserError(message.lstrip())
-
         # Run the pre-validation wizards. Processing a pre-validation wizard should work on the
         # moves and/or the context and never call `_action_done`.
         if not self.env.context.get('button_validate_picking_ids'):
@@ -274,7 +302,6 @@ class stock_picking_extend(models.Model):
         res = self._pre_action_done_hook()
         if res is not True:
             return res
-
         # Call `_action_done`.
         if self.env.context.get('picking_ids_not_to_backorder'):
             pickings_not_to_backorder = self.browse(self.env.context['picking_ids_not_to_backorder'])
@@ -284,7 +311,6 @@ class stock_picking_extend(models.Model):
             pickings_to_backorder = self
         pickings_not_to_backorder.with_context(cancel_backorder=True)._action_done()
         pickings_to_backorder.with_context(cancel_backorder=False)._action_done()
-
         if self.user_has_groups('stock.group_reception_report') \
                 and self.user_has_groups('stock.group_auto_reception_report') \
                 and self.filtered(lambda p: p.picking_type_id.code != 'outgoing'):
@@ -313,6 +339,8 @@ class stock_picking_extend(models.Model):
         #  Marca actividad como hecha de forma automatica
         new_activity = self.env['mail.activity'].search([('id', '=', self.activity_id)], limit=1)
         new_activity.action_feedback(feedback='Es confirmada')
+        # Cierre automatico de requisición
+        self.requisition_id.requisition_automatic_closing()
         return True
 
     # función que pasa ha estado preparado para stock picking de 2 estapa

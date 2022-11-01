@@ -158,7 +158,7 @@ class PurchaseOrder(models.Model):
         for rec5 in b:
             picking2 = self.env['stock_picking_transit_order_line'].search([('dest_location_id', '=', rec5), ('order_id', '=', self.ids)], limit=1)
             create_vals3 = {'stage': 2,
-                            'partner_id': self.partner_id.id,
+                            'partner_id': picking2.dest_location_id.warehouse_id.partner_id.id,
                             'order_id2': self.id,
                             'origin': picking2.stock_picking_id.name,
                             'parent_stock_picking': picking2.stock_picking_id.id,
@@ -212,7 +212,7 @@ class PurchaseOrder(models.Model):
                 self.env['stock.move'].sudo().create(create_vals4)
 
     def get_default_color(self):
-        self._get_default_color()    # seleción de color por estado
+        self._get_default_color()    # selección de color por estado
 
     # Color en ordenes de compra
     def _get_default_color(self):

@@ -77,6 +77,28 @@ class purchase_requisition_extend(models.Model):
                                         column1='purchase_requisition_id', column2='purchase_order_id',
                                         string='Ordenes de compra')
 
+    # Calcula la cantidad de productos recibidos y cerrado automatico
+    def requisition_automatic_closing(self):
+        vat = []
+        vat2 = []
+        vat3 = []
+        for rec in self.line_ids:
+            rec._reset_qty_received()
+            rec._compute_qty_received()
+            vat.append(rec.id)
+            if rec.received == True:
+                vat2.append(rec.id)
+            if rec.received2 == True:
+                vat3.append(rec.id)
+        a = len(vat)
+        b = len(vat2)
+        c = len(vat3)
+        if a == b:
+            self.write({'state': 'received'})   # Estado recibido
+            self.write({'state_received': 'done'})
+        if a == c:
+            self.write({'state': 'done'})   # Estado cerrado
+
     # Cambios de estado
     @api.onchange('state_received')
     def _compute_state_received(self):
@@ -470,6 +492,7 @@ class purchase_requisition_extend(models.Model):
         for rec in self.purchase_ids2:
             rec.action_cancel()
 
+
     # función botón cancelar extendida
     def action_cancel_extend(self):
         if self.manager_id.user_id == self.env.user or (self.manager2_id.user_id == self.env.user and self.time_off_related == True):
@@ -489,6 +512,16 @@ class purchase_requisition_extend(models.Model):
 
     # función del boton validar
     def action_in_progress_extend(self):
+        # Limpia registro, util para casos que dupliquen acuerdos de compra
+        self.write({'x_stock_picking_transit': False})
+        self.write({'assignees_id': False})
+        self.write({'state_received': 'normal'})
+        self.write({'purchase_order_many2many': False})
+        for rec in self.line_ids:
+            rec.qty_received = 0
+            rec.received = False
+            rec.qty_received2 = 0
+            rec.received2 = False
         # Comprobación de campos
         product = []
         a = []
@@ -644,8 +677,15 @@ class purchase_requisition_extend(models.Model):
         self.ensure_one()
         self.name = 'New'
         self.write({'state': 'draft'})
-        self.write({'assignees_id': False})
         self.write({'x_stock_picking_transit': False})
+        self.write({'assignees_id': False})
+        self.write({'state_received': 'normal'})
+        self.write({'purchase_order_many2many': False})
+        for rec in self.line_ids:
+            rec.qty_received = 0
+            rec.received = False
+            rec.qty_received2 = 0
+            rec.received2 = False
 
 
 

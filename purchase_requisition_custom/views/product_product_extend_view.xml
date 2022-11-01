@@ -57,5 +57,18 @@
                 </xpath>
             </field>
         </record>
+
+         <!--              Vista panel de control               -->
+        <record id="product_product_search_stock_form_extend" model="ir.ui.view">
+          <field name="name">product_template_search_stock_form_extend</field>
+          <field name="model">product.product</field>
+          <field name="inherit_id" ref="stock.stock_product_search_form_view"/>
+          <field name="arch" type="xml">
+            <xpath expr="//filter[@name='real_stock_available']" position="after">
+                <field name="available_stock" string="Disponible"/>
+                <filter name="available_stock" string="Disponible" domain="[('available_stock', '=', 1)]"/>
+            </xpath>
+          </field>
+        </record>
     </data>
 </odoo>
