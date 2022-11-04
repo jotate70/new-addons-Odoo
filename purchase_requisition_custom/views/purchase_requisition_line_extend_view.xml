@@ -32,11 +32,13 @@
                 </xpath>
                 <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='line_ids']/tree[1]/field[@name='product_qty']" position="before">
                     <field name="inventory_product_qty" optional="show"/>
+                    <field name="show_picking" invisible="1"/>
+                </xpath>
+                <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='line_ids']/tree[1]/field[@name='product_qty']" position="after">
                     <field name="qty_received" optional="show"/>
                     <field name="received" invisible="1"/>
-                    <field name="qty_received2" optional="hide"/>
+                    <field name="qty_received2" optional="show"/>
                     <field name="received2" invisible="1"/>
-                    <field name="show_picking" invisible="1"/>
                 </xpath>
                 <xpath expr="//form[1]/sheet[1]/notebook[1]/page[@name='products']/field[@name='line_ids']/tree[1]/field[@name='price_unit']" position="after">
                     <field name="x_project" options="{'no_create':true, 'no_open':true}" invisible="1"/>

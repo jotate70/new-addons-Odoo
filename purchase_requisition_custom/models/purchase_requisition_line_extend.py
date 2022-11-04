@@ -41,7 +41,7 @@ class purchase_requisition_line_extend(models.Model):
                                           help='Solo se permite una ubicación de transito por almacen, está ubicación de transito es usada para ordenes de compra.')
     qty_received = fields.Float(string="Recibido", digits='Product Unit of Measure', help="Indica la cantidad de productos recibidos en la etapa transito.")
     received = fields.Boolean(string="Recibido")
-    qty_received2 = fields.Float(string="Entregado", digits='Product Unit of Measure',  help="Indica la cantidad de productos entrgado al cliente, etapa 2.")
+    qty_received2 = fields.Float(string="Entregado", digits='Product Unit of Measure 2',  help="Indica la cantidad de productos entrgado al cliente, etapa 2.")
     received2 = fields.Boolean(string="Entregado")
 
     # Calcular cantidad de productos stock picking
