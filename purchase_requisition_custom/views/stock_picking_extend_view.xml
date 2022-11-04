@@ -107,7 +107,10 @@
           <field name="arch" type="xml">
             <xpath expr="//filter[@name='cancel']" position="after">
                 <field name="location" string="Locación"/>
-                <filter name="location" string="Locación" domain="[]"/>
+                <filter name="location" string="Locación Bogotá" domain="[('location', '=', '1')]"/>
+                <filter name="location" string="Locación Medellín" domain="[('location', '=', '2')]"/>
+                <filter name="location" string="Locación Calí" domain="[('location', '=', '3')]"/>
+                <filter name="location" string="Locación Barranquilla" domain="[('location', '=', '4')]"/>
             </xpath>
           </field>
         </record>

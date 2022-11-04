@@ -14,22 +14,15 @@ class PurchaseOrderLine(models.Model):
                                           help='Solo se permite una ubicación de transito por almacen')
     location_dest_id = fields.Many2one(comodel_name='stock.location', string='A ubicación',
                                                help='Ubicación a mover, con filtro de almacane y ubicación interna, cliente')
-
     location_dest_id_domain = fields.Char(compute="_compute_location_dest_id", readonly=True, store=False)
-
     requisition_id = fields.Many2one('purchase.requisition', string='Purchase Agreement', related='order_id.requisition_id')
+    qty_received = fields.Float("Received Qty", compute='_compute_qty_received', inverse='_inverse_qty_received',
+                                compute_sudo=True, store=True, digits='Product Unit of Measure')
 
     # Seleciona la ubicación origin la ubicación de proveedor
     def _compute_location_virtual_partner(self):
         virtual_partner_location = self.env['stock.location'].search([('usage', '=', 'supplier')], limit=1)
         self.location_id = virtual_partner_location
-
-#     # Seleciona la ubicación de transito
-#     @api.onchange('warehouse_id')
-#     def _compute_transit_location(self):
-#         for rec in self:
-#             self.write({'transit_location_id': rec.warehouse_id.transit_location_id})
-#             self.write({'location_dest_id': False})
 
     # Seleciona la cuenta analitica
     @api.onchange('location_dest_id')
@@ -48,6 +41,14 @@ class PurchaseOrderLine(models.Model):
                 [('warehouse_id', '=', rec.warehouse_id.ids),
                  ('usage', '=', ['internal'])]
             )
+
+    # Función que optiene la cantidad e productos en stock picking
+    def _get_po_line_moves(self):
+        self.ensure_one()
+        moves = self.move_ids.filtered(lambda m: m.product_id == self.product_id and m.stage == 1)
+        if self._context.get('accrual_entry_date'):
+            moves = moves.filtered(lambda r: fields.Date.context_today(r, r.date) <= self._context['accrual_entry_date'])
+        return moves
 
 
 

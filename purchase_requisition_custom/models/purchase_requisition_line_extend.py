@@ -20,8 +20,7 @@ class purchase_requisition_line_extend(models.Model):
                                       related="warehouse_id.int_type_id")
     property_stock_inventory = fields.Many2one(comodel_name='stock.location',
                                                string='Mover de',
-                                               help='Muestra la ubicación del producto en el inventario',
-                                               )
+                                               help='Muestra la ubicación del producto en el inventario')
     location_dest_id_domain = fields.Char(compute="_compute_location_dest_id", readonly=True, store=False)
     default_location_dest_id = fields.Many2one(comodel_name='stock.location', string='A ubicación',
                                                help='Ubicación a mover, con filtro de almacane y ubicación interna, cliente')
@@ -39,7 +38,36 @@ class purchase_requisition_line_extend(models.Model):
                                 help='El proyecto está relacionado con su respectivo centro de costo')
     account_analytic_id = fields.Many2one('account.analytic.account', string='Analytic Account')
     transit_location_id = fields.Many2one(comodel_name='stock.location', string='Ubicación de transito', store=True,
-                                          help='Solo se permite una ubicación de transito por almacen, está ubicación de transito es usada para ordenes de compra')
+                                          help='Solo se permite una ubicación de transito por almacen, está ubicación de transito es usada para ordenes de compra.')
+    qty_received = fields.Float(string="Recibido", digits='Product Unit of Measure', help="Indica la cantidad de productos recibidos en la etapa transito.")
+    received = fields.Boolean(string="Recibido")
+    qty_received2 = fields.Float(string="Entregado", digits='Product Unit of Measure 2',  help="Indica la cantidad de productos entrgado al cliente, etapa 2.")
+    received2 = fields.Boolean(string="Entregado")
+
+    # Calcular cantidad de productos stock picking
+    def _compute_qty_received(self):
+        for rec in self.requisition_id.purchase_ids2:
+             for rec2 in rec.move_ids_without_package:
+                 if self.product_id == rec2.product_id and rec2.stage == 1 and rec2.state == 'done':
+                     self.qty_received += rec2.quantity_done
+                 if self.product_id == rec2.product_id and rec2.stage == 2 and rec2.state == 'done':
+                     self.qty_received2 += rec2.quantity_done
+        # Indica si el pedido del producto se proceso con totalidad en paso 1
+        if self.qty_received >= self.product_qty2:
+            self.received = True
+        else:
+            self.received = False
+        # Indica si el pedido del producto se proceso con totalidad en paso 2
+        if self.qty_received2 >= self.product_qty2:
+            self.received2 = True
+        else:
+            self.received2 = False
+
+    # Borrado cantidad de productos stock picking
+    def _reset_qty_received(self):
+        if self.qty_received:
+            self.qty_received = False
+            self.qty_received2 = False
 
     # Seleciona la ubicación de transito
     @api.onchange('default_location_dest_id')

@@ -13,7 +13,7 @@ class ProductTemplate(models.Model):
         if value == 1:
             data = self.env['stock.quant'].sudo().search([('usage', '=', 'internal'),
                                                           ('location_id.usage', '=', 'internal'),
-                                                          ('available_quantity', '>', 0.0), ('quantity', '>', 0.0)])
+                                                          ('available_quantity', '>', 0)])
             if data:
                 for rec in data:
                     vat.append(rec.product_tmpl_id.id)
@@ -26,7 +26,7 @@ class ProductTemplate(models.Model):
         for rec1 in self:
             data = rec1.env['stock.quant'].sudo().search([('product_tmpl_id', '=', rec1.ids), ('usage', '=', 'internal'),
                                                           ('location_id.usage', '=', 'internal'),
-                                                          ('available_quantity', '>', 0.0)])
+                                                          ('available_quantity', '>', 0)])
             if data:
                 for rec2 in data:
                     rec1.available_stock += rec2.available_quantity
