@@ -40,7 +40,7 @@ class stock_warehouse_extend(models.Model):
             rec.transit_location_id_domain = json.dumps(
                 [('location_id.warehouse_id', '=', self.ids), ('usage', '=', 'transit')])
 
-    # validación limite para asociar almacen
+
     @api.depends('transit_location_id')
     def _compute_transit_location(self):
         if self.transit_location_id:

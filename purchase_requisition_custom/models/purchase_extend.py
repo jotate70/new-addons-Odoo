@@ -41,6 +41,13 @@ class PurchaseOrder(models.Model):
     x_stock_picking_transit_order_line = fields.One2many(comodel_name='stock_picking_transit_order_line', inverse_name='order_id',
                                                          string='Stock picking transitorio_order_line')
     stock_picking_ids = fields.One2many(comodel_name='stock.picking', inverse_name='purchase_id', string='Recepciones')
+    # campos relacionados de ajustes
+    notes_purchase = fields.Html(string='Términos y Condiciones', compute='get_partner')
+
+    # Función que llaman los valores en modelo settings
+    def get_partner(self):
+        self.notes_purchase = self.env['ir.config_parameter'].sudo().get_param('purchase_requisition_custom_constraint.notes_purchase')
+        return self.notes_purchase
 
     # Permite seleccionar el reponsable que se le debe cargar en el presupuesto la orden de compra
     def compute_responsible_budget_discount(self):
@@ -589,7 +596,8 @@ class PurchaseOrder(models.Model):
                     self.origin = self.origin + ', ' + requisition.name
             else:
                 self.origin = requisition.name
-        self.notes = requisition.description
+        self.notes = self.notes_purchase
+        # self.notes = requisition.description
         self.date_order = fields.Datetime.now()
 
         if requisition.type_id.line_copy != 'copy':

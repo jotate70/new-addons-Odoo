@@ -8,7 +8,7 @@ class purchase_requisition_line_extend(models.Model):
     _inherit = 'purchase.requisition.line'
 
     image_product = fields.Binary(string='Imagen', related='product_id.image_1920')
-    product_qty = fields.Float(string='Quantity', digits='Product Unit of Measure', compute='_compute_product_qty')
+    product_qty = fields.Float(string='Quantity', digits='Product Unit of Measure')
     available_quantity_total = fields.Float(string='Stock', related='product_id.available_stock',
                                  help='Muestra la cantidad disponible que está sin reservar')
     qty_location = fields.Float(string='Disponible', store=True,
@@ -24,7 +24,7 @@ class purchase_requisition_line_extend(models.Model):
     location_dest_id_domain = fields.Char(compute="_compute_location_dest_id", readonly=True, store=False)
     default_location_dest_id = fields.Many2one(comodel_name='stock.location', string='A ubicación',
                                                help='Ubicación a mover, con filtro de almacane y ubicación interna, cliente')
-    inventory_product_qty = fields.Float(string='Cantidad inventario', compute='_compute_inventory_product_qty',
+    inventory_product_qty = fields.Float(string='Cantidad inventario',
                                          help='Cantidad de pruductos que deseas sacar o mover de inventario')
     product_qty2 = fields.Float(string='Cantidad', help='Cantidad de pruductos solicitado')
     show_picking = fields.Boolean(string='show', related='requisition_id.show_picking',
@@ -88,7 +88,7 @@ class purchase_requisition_line_extend(models.Model):
                 a = location
         self.write({'transit_location_id': a})
 
-    #   Función resetea locación de destino al seleciona almacen y seleciona la ubicación de transito
+    #  Función resetea locación de destino al seleciona almacen y seleciona la ubicación de transito
     @api.onchange('warehouse_id')
     def _reset_location_dest(self):
         self.write({'default_location_dest_id': False})
@@ -130,17 +130,26 @@ class purchase_requisition_line_extend(models.Model):
 
     # Función que calcula la cantidad de inventario a mover
     @api.onchange('product_qty2')
-    @api.depends('qty_location')
-    def _compute_inventory_product_qty(self):
+    def compute_inventory_product_qty(self):
         for rec in self:
-            rec.inventory_product_qty = 0
+            if rec.requisition_id.stock_state == 'stock':
+                if rec.qty_location <= rec.product_qty2:
+                    rec.inventory_product_qty = rec.qty_location
+                else:
+                    rec.inventory_product_qty = rec.product_qty2
 
     # Función que calcula la cantidad a comprar
     @api.onchange('product_qty2')
-    @api.depends('qty_location')
-    def _compute_product_qty(self):
-        for rec2 in self:
-            rec2.product_qty = rec2.product_qty2
+    def compute_product_qty(self):
+        for rec in self:
+            if rec.requisition_id.stock_state == 'stock':
+                if rec.qty_location <= rec.product_qty2:
+                    rec.product_qty = rec.product_qty2 - rec.qty_location
+                else:
+                    rec.product_qty = 0
+            else:
+                rec.product_qty = rec.product_qty2
+                rec.inventory_product_qty = 0
 
     # Función concatena la descripción del producto en la descripción
     @api.onchange('product_id')
@@ -183,8 +192,6 @@ class purchase_requisition_line_extend(models.Model):
             'transit_location_id': self.transit_location_id.id,
             'location_dest_id': self.default_location_dest_id.id,
         }
-
-
 
 
 

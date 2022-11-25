@@ -7,6 +7,7 @@ class ResConfigSettings(models.TransientModel):
 
     approve_manager_budget_settings = fields.Boolean(string='Activar presupuesto')
     account_analityc_requisition_settings = fields.Boolean(string='Activar cuentas analíticas')
+    notes_purchase = fields.Html(string='Términos y Condiciones')
 
     # Permite guardar valor en modelo transitorio
     def set_values(self):
@@ -17,6 +18,9 @@ class ResConfigSettings(models.TransientModel):
         self.env['ir.config_parameter'].set_param(
             'purchase_requisition_custom_constraint.account_analityc_requisition_settings',
             self.account_analityc_requisition_settings)
+        self.env['ir.config_parameter'].set_param(
+            'purchase_requisition_custom_constraint.notes_purchase',
+            self.notes_purchase)
         return res
 
     # permite obtener valores en modelo transitorio
@@ -28,11 +32,12 @@ class ResConfigSettings(models.TransientModel):
             'purchase_requisition_custom_constraint.approve_manager_budget_settings')
         requisition_parameter_account_analityc_requisition_settings = ICPSudo.get_param(
             'purchase_requisition_custom_constraint.account_analityc_requisition_settings')
-
-
+        requisition_parameter_notes_purchase = ICPSudo.get_param(
+            'purchase_requisition_custom_constraint.notes_purchase')
         res.update(
             approve_manager_budget_settings=requisition_parameter_approve_manager_budget_settings,
             account_analityc_requisition_settings=requisition_parameter_account_analityc_requisition_settings,
+            notes_purchase=requisition_parameter_notes_purchase,
         )
         return res
 

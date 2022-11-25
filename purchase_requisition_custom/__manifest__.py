@@ -25,6 +25,8 @@
         15.7.2 Correction of duplicates in stock picking when canceling purchase orders and requisitions.
         15.7.3 Multi currency support fix.
         15.8.0 Automatic closing of requisitions and counting of products processed by stages is added, new filters available in products and product variants, location filter in transfers.
+        15.9.0 Support for add your terms & conditions at the bottom of purchase order.
+        15.9.1 Error corrections.
         """,
 
     'description': """
@@ -35,7 +37,7 @@
     'website': "https://www.andirent.co",
 
     'category': 'Purchase',
-    'version': '7.4',
+    'version': '9.1',
 
     # any module necessary for this one to work correctly
     'depends': ['purchase_requisition',
