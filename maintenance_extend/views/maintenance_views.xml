@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--                       Form View                     -->
+    <record id="hr_equipment_view_form_extend" model="ir.ui.view">
+      <field name="name">hr_equipment_view_form_extend</field>
+      <field name="model">maintenance.equipment</field>
+      <field name="inherit_id" ref='maintenance.hr_equipment_view_form'/>
+      <field name="arch" type="xml">
+          <!--         Fields            -->
+          <xpath expr="//div[@class='oe_title']" position="before">
+              <field name="location_origin" invisible="1"/>
+              <field name="warehouse_domain" invisible="1"/>
+              <field name="warehouse_id" invisible="1"/>
+              <field name="location_domain" invisible="1"/>
+              <field name="product_domain" invisible="1"/>
+          </xpath>
+          <xpath expr="//div[@class='oe_title']" position="after">
+              <div class="oe_title">
+                  <label for="product_name"/>
+                  <h1><field name="product_name" string="Name" placeholder="e.g. LED Monitor"/></h1>
+              </div>
+          </xpath>
+          <xpath expr="//field[@name='category_id']" position="before">
+              <field name="lot_id_domain" invisible="1"/>
+              <field name="lot_id" domain="lot_id_domain" placeholder="No serial"/>
+              <field name="plaque_id" attrs="{'invisible': [('tracking', '=', 'none')]}" force_save="True" readonly="1"/>
+          </xpath>
+          <xpath expr="//field[@name='location']" position="after">
+              <field name="tracking" invisible="1"/>
+          </xpath>
+          <!--          Attributes         -->
+          <xpath expr="//field[@name='location']" position="attributes">
+            <attribute name="attrs">{}</attribute>
+            <attribute name="force_save">True</attribute>
+            <attribute name="readonly">1</attribute>
+          </xpath>
+          <xpath expr="//field[@name='location']" position="attributes">
+            <attribute name="invisible">1</attribute>
+          </xpath>
+          <xpath expr="//div[@class='oe_title']" position="attributes">
+              <attribute name="attrs">{}</attribute>
+              <attribute name="force_save">True</attribute>
+              <attribute name="invisible">1</attribute>
+          </xpath>
+          <!--            warehouse and location view -->
+          <field name="location_origin" position="attributes">
+              <attribute name="invisible">1</attribute>
+          </field>
+          <field name="warehouse_id" position="after">
+              <div>
+                  <label for="location_origin" string="Locación:"/>
+                  <field name="location_origin" />
+                  <span class="oe_read_only" > -- </span>
+                  <label for="warehouse_id" string="Almacen de origen:"/>
+                  <field name="warehouse_id" />
+                  <span class="oe_read_only" > -- </span>
+                  <label for="location_id" string="Ubicación de origen:"/>
+                  <field name="location_id" />
+              </div>
+          </field>
+      </field>
+    </record>
+    <!--                       List View                    -->
+    <record id="hr_equipment_view_tree_extend" model="ir.ui.view">
+      <field name="name">hr_equipment_view_tree_extend</field>
+      <field name="model">maintenance.equipment</field>
+      <field name="inherit_id" ref='maintenance.hr_equipment_view_tree'/>
+      <field name="arch" type="xml">
+          <!--         Fields            -->
+          <xpath expr="//field[@name='name']" position="after">
+              <field name="location_origin" optional="show"/>
+              <field name="warehouse_id" optional="show"/>
+              <field name="location_id" optional="show"/>
+          </xpath>
+      </field>
+    </record>
+</odoo>
