@@ -1,0 +1,24 @@
+<odoo>
+  <data>
+    <!-- Se hereda el campo de proyectos en el modelo de usuarios  -->
+    <record id="hr_employee_form_extend" model="ir.ui.view">
+      <field name="name">hr_employee_form_extend</field>
+      <field name="model">hr.employee</field>
+      <field name="inherit_id" ref="hr.view_employee_form"/>
+      <field name="arch" type="xml">
+        <xpath expr="//page[@name='hr_settings']" position="after">
+          <page string="Facturación">
+            <group>
+              <group string="Orden de venta">
+                <field name="invoicing_manager"/>
+              </group>
+              <group string="Suscripciones">
+                <field name="subscription_manager"/>
+              </group>
+            </group>
+          </page>
+        </xpath>
+      </field>
+    </record>
+  </data>
+</odoo>

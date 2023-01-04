@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Add page in suscriptions form -->
+    <record id="sale_subscription_form_view_inherit" model="ir.ui.view">
+        <field name="name">sale_subscription_form_view_inherit_inherit</field>
+        <field name="model">sale.subscription</field>
+        <field name="inherit_id" ref="sale_subscription.sale_subscription_view_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='start_subscription']" position="after">
+                <!--         	in progress state           -->
+                <button name="action_approve_subscription" string="Aprobar" type="object" class="btn-primary"
+                        confirm="¿Desea aprobar la orden de compra?"/>
+                <button name="button_approve" string="Aprobar" type="object" class="btn-primary"
+                        confirm="¿Desea aprobar la orden de compra?"/>
+            </xpath>
+            <xpath expr="//page[@id='lines']" position="after">
+                <page string="Subscription Lines" id="lines2">
+                    <div>
+                        <field name="recurring_invoice_line_2_ids">
+                            <tree editable="bottom">
+                                <field name="product_id" domain="[('recurring_invoice', '=', True), '|', ('company_id', '=', False), ('company_id', '=', parent.company_id)]" context="{'default_recurring_invoice': True}"/>
+                                <field name="name" optional="show"/>
+                                <field name="quantity"/>
+                                <field name="product_uom_category_id" invisible="1"/>
+                                <field name="uom_id" string="UoM" groups="uom.group_uom" optional="show"/>
+                                <field name="price_unit" widget="monetary"/>
+                                <field name="discount" groups="product.group_discount_per_so_line" optional="show"/>
+                                <field name="price_subtotal" widget="monetary" groups="account.group_show_line_subtotals_tax_excluded"/>
+                                <field name="currency_id" invisible="1"/>
+                            </tree>
+                        </field>
+                    </div>
+                </page>
+            </xpath>
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="approve_manager_origin" invisible="1"/>
+                <field name="time_off_related" invisible="1"/>
+                <field name="time_off" invisible=""/>
+                <field name="activity_id" invisible=""/>
+                <field name="state_aprove" invisible=""/>
+            </xpath>
+            <field name="time_off" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </field>
+            <field name="time_off" position="after">
+                <label for="manager_id" string="Responsable de aprobación"/>
+                <div>
+                    <field name="manager_id" class="oe_inline"
+                           options="{'no_open':true}"/>
+                    <span class="oe_read_only" attrs="{'invisible': [('manager_id', '=', False)]}"> - </span>
+                    <field name="time_off" placeholder="Number" class="oe_inline" style="color: green"
+                           attrs="{'invisible': ['|', ('time_off_related', '=', True), ('manager_id', '=', False)]}"/>
+                    <field name="time_off" placeholder="Number" class="oe_inline" style="color: red"
+                           attrs="{'invisible': ['|', ('time_off_related', '=', False), ('manager_id', '=', False)]}"/>
+                </div>
+            </field>
+        </field>
+    </record>
+</odoo>

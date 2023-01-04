@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!--        Sale order form-->
+        <record id="view_sale_order_extend" model="ir.ui.view">
+            <field name="name">view_sale_order_extend</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="sale.view_order_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//button[@name='action_quotation_send']" position="after">
+                    <!--         	in progress state           -->
+                    <button name="action_approve_sale" string="Aprobar" states="approve" type="object" class="btn-primary"
+                            confirm="¿Desea aprobar la orden de compra?"/>
+                    <button name="action_demo" string="Demo" type="object" class="btn-primary"/>
+                </xpath>
+                <xpath expr="//field[@name='partner_id']" position="after">
+                    <field name="sale_order_type" invisible=""/>
+                    <field name="approve_manager_origin" invisible="1"/>
+                    <field name="time_off" invisible="1"/>
+                    <field name="time_off_related" invisible="1"/>
+                </xpath>
+                <xpath expr="//field[@name='product_template_id']" position="after">
+                    <field name="available_quantity_total" optional="show"/>
+                </xpath>
+                <field name="time_off" position="attributes">
+                <attribute name="invisible">1</attribute>
+                </field>
+                <field name="time_off" position="after">
+                    <label for="approve_manager" string="Responsable de aprobación"/>
+                    <div>
+                        <field name="approve_manager" class="oe_inline"
+                               options="{'no_open':true}"/>
+                        <span class="oe_read_only" attrs="{'invisible': [('approve_manager', '=', False)]}"> - </span>
+                        <field name="time_off" placeholder="Number" class="oe_inline" style="color: green"
+                               attrs="{'invisible': ['|', ('time_off_related', '=', True), ('approve_manager', '=', False)]}"/>
+                        <field name="time_off" placeholder="Number" class="oe_inline" style="color: red"
+                               attrs="{'invisible': ['|', ('time_off_related', '=', False), ('approve_manager', '=', False)]}"/>
+                    </div>
+                </field>
+                </field>
+        </record>
+    </data>
+</odoo>
