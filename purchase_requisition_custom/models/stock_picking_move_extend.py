@@ -49,6 +49,17 @@ class stock_picking_extend(models.Model):
                         raise UserError('La placa %s ya se encuentra en la lista.' % line.plaque_id.name)
                     exist_lines.append(line.plaque_id.id)
 
+    # Restricción de modelos repetidos en la tranferencia
+    @api.constrains('move_line_nosuggest_ids')
+    def _compute_constrains_model1(self):
+        for rec in self:
+            exist_lines = []
+            for line in rec.move_line_nosuggest_ids:
+                if line.model_id:
+                    if line.model_id.id in exist_lines:
+                        raise UserError('El modelo %s ya se encuentra en la lista.' % line.model_id.name)
+                    exist_lines.append(line.model_id.id)
+
     @api.constrains('move_line_ids')
     def _compute_constrains_plaque2(self):
         for rec in self:
@@ -58,6 +69,17 @@ class stock_picking_extend(models.Model):
                     if line.plaque_id.id in exist_lines:
                         raise UserError('La placa %s ya se encuentra en la lista.' % line.plaque_id.name)
                     exist_lines.append(line.plaque_id.id)
+
+    @api.constrains('move_line_ids')
+    def _compute_constrains_model2(self):
+        for rec in self:
+            exist_lines = []
+            for line in rec.move_line_ids:
+                if line.model_id:
+                    if line.model_id.id in exist_lines:
+                        raise UserError('El modelo %s ya se encuentra en la lista.' % line.model_id.name)
+                    exist_lines.append(line.model_id.id)
+
 
     # Restricción de placas aociadas a un serial/lote
     @api.constrains('move_line_nosuggest_ids')
@@ -71,7 +93,21 @@ class stock_picking_extend(models.Model):
                         exist_lines.append(rep.ids)
                         a = len(exist_lines)
                         if a > 0 and line.lot_id != rep:
-                            raise UserError('La placa ya se encuentra asociada al serial %s.' % rep.name)
+                            raise UserError('La placa ya se encuentra asociado al serial %s.' % rep.name)
+
+    # Restricción de modelo aociados a un serial/lote
+    @api.constrains('move_line_nosuggest_ids')
+    def _compute_constrains_model3(self):
+        for rec in self:
+            exist_lines = ['']
+            for line in rec.move_line_nosuggest_ids:
+                if line.model_id:
+                    rep = self.env['stock.production.lot'].search([('model_id', '=', line.model_id.ids)], limit=1)
+                    if rep:
+                        exist_lines.append(rep.ids)
+                        a = len(exist_lines)
+                        if a > 0 and line.lot_id != rep:
+                            raise UserError('El modelo ya se encuentra asociada al serial %s.' % rep.name)
 
     @api.constrains('move_line_ids')
     def _compute_constrains_plaque4(self):
@@ -85,6 +121,19 @@ class stock_picking_extend(models.Model):
                         a = len(exist_lines)
                         if a > 0 and line.lot_id != rep:
                             raise UserError('La placa ya se encuentra asociada al serial %s.' % rep.name)
+
+    @api.constrains('move_line_ids')
+    def _compute_constrains_model4(self):
+        for rec in self:
+            exist_lines = ['']
+            for line in rec.move_line_ids:
+                if line.model_id:
+                    rep = self.env['stock.production.lot'].search([('model_id', '=', line.model_id.ids)], limit=1)
+                    if rep:
+                        exist_lines.append(rep.ids)
+                        a = len(exist_lines)
+                        if a > 0 and line.lot_id != rep:
+                            raise UserError('El modelo ya se encuentra asociada al serial %s.' % rep.name)
 
     @api.depends('order_line.price_total')
     def _amount_all(self):
@@ -146,6 +195,7 @@ class stock_picking_extend(models.Model):
                 location_id=reserved_quant.location_id.id,
                 lot_id=reserved_quant.lot_id.id or False,
                 plaque_id=reserved_quant.plaque_id.id or False,
+                model_id=reserved_quant.model_id.id or False,
                 package_id=reserved_quant.package_id.id or False,
                 owner_id=reserved_quant.owner_id.id or False,
             )
@@ -161,10 +211,10 @@ class stock_picking_extend(models.Model):
 
         def _get_available_move_lines(move):
             move_lines_in = move.move_orig_ids.filtered(lambda m: m.state == 'done').mapped('move_line_ids')
-            keys_in_groupby = ['location_dest_id', 'lot_id', 'plaque_id', 'result_package_id', 'owner_id']
+            keys_in_groupby = ['location_dest_id', 'lot_id', 'plaque_id', 'model_id', 'result_package_id', 'owner_id']
 
             def _keys_in_sorted(ml):
-                return (ml.location_dest_id.id, ml.lot_id.id, ml.plaque_id.id, ml.result_package_id.id, ml.owner_id.id)
+                return (ml.location_dest_id.id, ml.lot_id.id, ml.plaque_id.id, ml.model_id.id, ml.result_package_id.id, ml.owner_id.id)
 
             grouped_move_lines_in = {}
             for k, g in groupby(sorted(move_lines_in, key=_keys_in_sorted), key=itemgetter(*keys_in_groupby)):
@@ -181,10 +231,10 @@ class stock_picking_extend(models.Model):
             moves_out_siblings_to_consider = moves_out_siblings & (StockMove.browse(assigned_moves_ids) + StockMove.browse(partially_available_moves_ids))
             reserved_moves_out_siblings = moves_out_siblings.filtered(lambda m: m.state in ['partially_available', 'assigned'])
             move_lines_out_reserved = (reserved_moves_out_siblings | moves_out_siblings_to_consider).mapped('move_line_ids')
-            keys_out_groupby = ['location_id', 'lot_id', 'plaque_id', 'package_id', 'owner_id']
+            keys_out_groupby = ['location_id', 'lot_id', 'plaque_id', 'model_id', 'package_id', 'owner_id']
 
             def _keys_out_sorted(ml):
-                return (ml.location_id.id, ml.lot_id.id, ml.plaque_id.id, ml.package_id.id, ml.owner_id.id)
+                return (ml.location_id.id, ml.lot_id.id, ml.plaque_id.id, ml.model_id.id, ml.package_id.id, ml.owner_id.id)
 
             grouped_move_lines_out = {}
             for k, g in groupby(sorted(move_lines_out_done, key=_keys_out_sorted), key=itemgetter(*keys_out_groupby)):
@@ -215,7 +265,7 @@ class stock_picking_extend(models.Model):
                 # create the move line(s) but do not impact quants
                 if move.move_orig_ids:
                     available_move_lines = _get_available_move_lines(move)
-                    for (location_id, lot_id, plaque_id, package_id, owner_id), quantity in available_move_lines.items():
+                    for (location_id, lot_id, plaque_id, model_id, package_id, owner_id), quantity in available_move_lines.items():
                         qty_added = min(missing_reserved_quantity, quantity)
                         move_line_vals = move._prepare_move_line_vals(qty_added)
                         move_line_vals.update({
@@ -223,6 +273,7 @@ class stock_picking_extend(models.Model):
                             'lot_id': lot_id.id,
                             'lot_name': lot_id.name,
                             'plaque_id': plaque_id.id,
+                            'model_id': model_id.id,
                             'owner_id': owner_id.id,
                         })
                         move_line_vals_list.append(move_line_vals)
@@ -240,6 +291,7 @@ class stock_picking_extend(models.Model):
                                                             ml.picking_id == move.picking_id and
                                                             not ml.lot_id and
                                                             not ml.plaque_id and
+                                                            not ml.model_id and
                                                             not ml.package_id and
                                                             not ml.owner_id)
                     if to_update:
@@ -281,9 +333,9 @@ class stock_picking_extend(models.Model):
                     if not available_move_lines:
                         continue
                     for move_line in move.move_line_ids.filtered(lambda m: m.product_qty):
-                        if available_move_lines.get((move_line.location_id, move_line.lot_id, move_line.plaque_id, move_line.result_package_id, move_line.owner_id)):
-                            available_move_lines[(move_line.location_id, move_line.lot_id, move_line.plaque_id, move_line.result_package_id, move_line.owner_id)] -= move_line.product_qty
-                    for (location_id, lot_id, plaque_id, package_id, owner_id), quantity in available_move_lines.items():
+                        if available_move_lines.get((move_line.location_id, move_line.lot_id, move_line.plaque_id, move_line.model_id, move_line.result_package_id, move_line.owner_id)):
+                            available_move_lines[(move_line.location_id, move_line.lot_id, move_line.plaque_id, move_line.model_id, move_line.result_package_id, move_line.owner_id)] -= move_line.product_qty
+                    for (location_id, lot_id, plaque_id, model_id, package_id, owner_id), quantity in available_move_lines.items():
                         need = move.product_qty - sum(move.move_line_ids.mapped('product_qty'))
                         # `quantity` is what is brought by chained done move lines. We double check
                         # here this quantity is available on the quants themselves. If not, this
@@ -295,7 +347,7 @@ class stock_picking_extend(models.Model):
                         if float_is_zero(available_quantity, precision_rounding=rounding):
                             continue
                         # Realiza la reserva y las trae stock move line
-                        taken_quantity = move._update_reserved_quantity(need, min(quantity, available_quantity), location_id, lot_id, plaque_id, package_id, owner_id)
+                        taken_quantity = move._update_reserved_quantity(need, min(quantity, available_quantity), location_id, lot_id, plaque_id, model_id, package_id, owner_id)
                         if float_is_zero(taken_quantity, precision_rounding=rounding):
                             continue
                         if float_is_zero(need - taken_quantity, precision_rounding=rounding):

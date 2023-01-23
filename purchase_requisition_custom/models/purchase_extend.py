@@ -41,6 +41,13 @@ class PurchaseOrder(models.Model):
     x_stock_picking_transit_order_line = fields.One2many(comodel_name='stock_picking_transit_order_line', inverse_name='order_id',
                                                          string='Stock picking transitorio_order_line')
     stock_picking_ids = fields.One2many(comodel_name='stock.picking', inverse_name='purchase_id', string='Recepciones')
+    # campos relacionados de ajustes
+    notes_purchase = fields.Html(string='Términos y Condiciones', compute='get_partner')
+
+    # Función que llaman los valores en modelo settings
+    def get_partner(self):
+        self.notes_purchase = self.env['ir.config_parameter'].sudo().get_param('purchase_requisition_custom_constraint.notes_purchase')
+        return self.notes_purchase
 
     # Permite seleccionar el reponsable que se le debe cargar en el presupuesto la orden de compra
     def compute_responsible_budget_discount(self):
@@ -389,7 +396,8 @@ class PurchaseOrder(models.Model):
                 if self.aprove_manager.user_id == self.env.user:
                     # niveles de aprobación dependiendo el monto asignado al jefe inmediato y presupuesto asignado
                     # si cumple la condición aprueba la orden, si no, pide un nivel más, NOTA: AÑADIR CODIGO REPETIDO A UNA FUNCIÓN -----------------------------------
-                    if self.amount_untaxed <= self.aprove_manager.person_budget:
+                    #rate =  self.env['res.currency.rate'].search([('currency_id', '=', self.currency_id)], order="id desc", limit=1)
+                    if self.amount_untaxed * self.currency_id.inverse_company_rate <= self.aprove_manager.person_budget:
                         #  Marca actividad como hecha de forma automatica
                         new_activity = self.env['mail.activity'].search([('id', '=', self.activity_id)], limit=1)
                         new_activity.action_feedback(feedback='Es aprobado')
@@ -589,7 +597,8 @@ class PurchaseOrder(models.Model):
                     self.origin = self.origin + ', ' + requisition.name
             else:
                 self.origin = requisition.name
-        self.notes = requisition.description
+        self.notes = self.notes_purchase
+        # self.notes = requisition.description
         self.date_order = fields.Datetime.now()
 
         if requisition.type_id.line_copy != 'copy':

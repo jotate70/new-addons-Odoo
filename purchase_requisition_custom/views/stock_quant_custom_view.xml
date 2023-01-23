@@ -16,6 +16,7 @@
                 </xpath>
                 <xpath expr="//field[@name='lot_id']" position="after">
                     <field name="plaque_id" optional="show" readonly="1"/>
+                    <field name="model_id" optional="show" readonly="1"/>
                 </xpath>
                 <xpath expr="//field[@name='user_id']" position="after">
                     <field name="fee_unit" optional="show" readonly="1"/>
@@ -32,6 +33,7 @@
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='lot_id']" position="after">
                     <field name="plaque_id" optional="show" readonly="1"/>
+                    <field name="model_id" optional="show" readonly="1"/>
                 </xpath>
                 <xpath expr="//field[@name='product_uom_id']" position="after">
                     <field name="fee_unit" optional="show" readonly="1"/>

@@ -27,4 +27,5 @@ from . import stock_picking_transit_order_line
 from . import product_category_extend
 from . import product_product_extend
 from . import res_partner_settings
+from . import stock_production_model
 

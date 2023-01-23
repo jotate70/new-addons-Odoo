@@ -76,6 +76,16 @@ class purchase_requisition_extend(models.Model):
                                         relation='x_purchase_order_purchase_requisition_rel',
                                         column1='purchase_requisition_id', column2='purchase_order_id',
                                         string='Ordenes de compra')
+    stock_state = fields.Selection([('stock', 'Permitir stock'),
+                                    ('purchase', 'Solo compras')],
+                                   string='Permitir movimiento de stock', default='purchase')
+
+    # actualiza cantidades para movimiento solo compras
+    @api.onchange('stock_state')
+    def update_stock_state(self):
+        for rec in self.line_ids:
+            rec.compute_product_qty()
+            rec.compute_inventory_product_qty()
 
     # Calcula la cantidad de productos recibidos y cerrado automatico
     def requisition_automatic_closing(self):
@@ -491,7 +501,6 @@ class purchase_requisition_extend(models.Model):
         # Update state cancel stock_picking
         for rec in self.purchase_ids2:
             rec.action_cancel()
-
 
     # función botón cancelar extendida
     def action_cancel_extend(self):

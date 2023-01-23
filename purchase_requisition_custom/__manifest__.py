@@ -25,6 +25,10 @@
         15.7.2 Correction of duplicates in stock picking when canceling purchase orders and requisitions.
         15.7.3 Multi currency support fix.
         15.8.0 Automatic closing of requisitions and counting of products processed by stages is added, new filters available in products and product variants, location filter in transfers.
+        15.9.0 Support for add your terms & conditions at the bottom of purchase order.
+        15.9.1 Error corrections.
+        15.10.0 The category type filter is added.
+        15.11.0 The model class is added to the inventory.
         """,
 
     'description': """
@@ -35,7 +39,7 @@
     'website': "https://www.andirent.co",
 
     'category': 'Purchase',
-    'version': '7.4',
+    'version': '9.1',
 
     # any module necessary for this one to work correctly
     'depends': ['purchase_requisition',
@@ -45,6 +49,7 @@
                 'helpdesk_ticket_custom',
                 'web_domain_field',
                 'account',
+                'sale_stock',
                 ],
 
     # always loaded
@@ -74,6 +79,7 @@
         'views/product_category_extend.xml',
         'views/product_product_extend_view.xml',
         'views/res_config_settings_views.xml',
+        'views/stock_production_model_view.xml',
         'report/report_purchaseorder_document_extend.xml',
         'report/report_deliveryslip_extend.xml',
         'wizard/stock_assign_serial_views_extend.xml',

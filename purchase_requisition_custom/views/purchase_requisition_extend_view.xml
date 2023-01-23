@@ -242,6 +242,7 @@
               </xpath>
               <xpath expr="//field[@name='company_id']" position="after">
                   <field name="ticket_many2many" widget="many2many_tags" options="{'no_create':true}"/>
+                  <field name="stock_state" widget="radio"/>
               </xpath>
               <xpath expr="//field[@name='vendor_id']" position="attributes">
                   <attribute name="options">{"no_create":true, "no_open":true}</attribute>
@@ -315,3 +316,4 @@
       </record>
   </data>
 </odoo>
+

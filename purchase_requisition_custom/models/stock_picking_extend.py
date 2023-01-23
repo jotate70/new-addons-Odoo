@@ -176,7 +176,7 @@ class stock_picking_extend(models.Model):
                     'stock_picking_line_id': rec.id,
                 }
                 self.env['account.analytic.line'].sudo().create(create_account_analytic)
-            # Crea apunte analítico de contrapartida recibo
+            # Crea apunte analítico de contrapartida interno
             if self.code == 'internal':
                 for rec in self.move_ids_without_package:
                     create_account_analytic2 = {
