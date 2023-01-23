@@ -5,13 +5,15 @@ class ProductionLot(models.Model):
     _inherit = 'stock.production.lot'
 
     plaque_id = fields.Many2one(comodel_name='stock_production_plaque', string='Placa')
+    model_id = fields.Many2one(comodel_name='stock_production_model', string='Modelo')
 
-    # Realaciona la placa/tarifa/fecha de contrato con numero de serie desde el modelo stock move line
+    # Realaciona la placa/modelo/tarifa/fecha de contrato con numero de serie desde el modelo stock move line
     def compute_plaque_id(self):
         data = self.env['stock.move.line'].search([('lot_id', '=', self.ids),
                                                    ('product_id', '=', self.product_id.ids),
                                                    ('qty_done', '=', self.product_qty)], limit=1, order='id DESC')
         self.plaque_id = data.plaque_id.id
+        self.model_id = data.model.id
 
     # Restricción de placas aociadas a un serial/lote
     @api.constrains('plaque_id')
@@ -25,6 +27,17 @@ class ProductionLot(models.Model):
                     if a > 1:
                         raise UserError('La placa ya se encuentra asociada al serial %s.' % line.name)
 
+    # Restricción de placas aociadas a un serial/lote
+    @api.constrains('model_id')
+    def _compute_constrains_model(self):
+        for rec in self:
+            exist_lines = []
+            for line in rec.model_id.lot_ids:
+                if line:
+                    exist_lines.append(line.ids)
+                    a = len(exist_lines)
+                    if a > 1:
+                        raise UserError('El modelo ya se encuentra asociada al serial %s.' % line.name)
 
     # @api.constrains('name', 'plaque_id', 'product_id', 'company_id')
     # def _check_unique_lot(self):

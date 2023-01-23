@@ -16,6 +16,7 @@ class StockQuant(models.Model):
                                           help='Solo se permite una ubicación de transito por almacen')
     fee_unit = fields.Float(string='Tarifa unitaria')
     plaque_id = fields.Many2one(comodel_name='stock_production_plaque', string='Placa', index=True)
+    model_id = fields.Many2one(comodel_name='stock_production_model', string='Modelo')
     contract_date = fields.Date(string='Inicio de contrato',
                                 help='Indica la fecha que se realiza el contrato asociada a dicha transferencia')
     contract_date_end = fields.Date(string='Finalización de contrato',
@@ -31,7 +32,7 @@ class StockQuant(models.Model):
              "\n* Customer Location: Virtual location representing the destination location for products sent to your customers")
 
     @api.model
-    def _update_available_quantity(self, product_id, location_id, quantity, lot_id=None, plaque_id=None, package_id=None, owner_id=None,
+    def _update_available_quantity(self, product_id, location_id, quantity, lot_id=None, plaque_id=None, model_id=None, package_id=None, owner_id=None,
                                    in_date=None, fee_unit=fee_unit, contract_date=contract_date, contract_date_end=contract_date_end):
         """ Increase or decrease `reserved_quantity` of a set of quants for a given set of
         product_id/location_id/lot_id/package_id/owner_id.
@@ -40,6 +41,7 @@ class StockQuant(models.Model):
         :param quantity:
         :param lot_id:
         :param plaque_id:
+        :param model_id:
         :param package_id:
         :param owner_id:
         :param fee_unit:
@@ -89,6 +91,7 @@ class StockQuant(models.Model):
                 'quantity': quantity,
                 'lot_id': lot_id and lot_id.id,
                 'plaque_id': plaque_id and plaque_id.id,
+                'model_id': model_id and model_id,
                 'package_id': package_id and package_id.id,
                 'owner_id': owner_id and owner_id.id,
                 'in_date': in_date,

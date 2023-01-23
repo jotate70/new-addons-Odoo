@@ -7,6 +7,7 @@ class StockMoveLine(models.Model):
     _inherit = 'stock.move.line'
 
     plaque_id = fields.Many2one(comodel_name='stock_production_plaque', string='Placa')
+    model_id = fields.Many2one(comodel_name='stock_production_model', string='Modelo')
     fee_unit = fields.Float(string='Tarifa', digits='Product fee')
     fee_subtotal = fields.Float(compute='_compute_fee_subtotal', string='Subtotal Tarifa')
     contract_date = fields.Date(string='Inicio de contrato', related='picking_id.contract_date',
@@ -18,12 +19,13 @@ class StockMoveLine(models.Model):
                                 string='Tipo', help='Indica el tipo de tranferencia de inventario')
     currency_id = fields.Many2one(comodel_name='res.currency', string='Moneda', related='picking_id.currency_id')
 
-    # trae la placa relacionada con el numero de serie en tranferencia internas y expediciones
+    # trae la placa y modelo relacionada con el numero de serie en tranferencia internas y expediciones
     @api.onchange('lot_id')
     def _related_lot_and_plaque(self):
         if self.picking_id.picking_type_id.code != 'incoming':
             for rec in self:
                 rec.write({'plaque_id': rec.lot_id.plaque_id})
+                rec.write({'model_id': rec.lot_id.model_id})
 
     # Optiene la tarifa subtotal
     @api.depends('fee_unit')
@@ -79,6 +81,7 @@ class StockMoveLine(models.Model):
                     available_qty, in_date = Quant._update_available_quantity(ml.product_id, ml.location_id, -quantity,
                                                                               lot_id=ml.lot_id,
                                                                               plaque_id=ml.plaque_id,
+                                                                              model_id=ml.model_id,
                                                                               package_id=ml.package_id,
                                                                               owner_id=ml.owner_id,
                                                                               fee_unit=ml.fee_unit,
@@ -86,20 +89,20 @@ class StockMoveLine(models.Model):
                                                                               contract_date_end=ml.contract_date_end)
                     if available_qty < 0 and ml.lot_id:
                         # see if we can compensate the negative quants with some untracked quants
-                        untracked_qty = Quant._get_available_quantity(ml.product_id, ml.location_id, lot_id=False, plaque_id=False,
+                        untracked_qty = Quant._get_available_quantity(ml.product_id, ml.location_id, lot_id=False, plaque_id=False, model_id=False,
                                                                       package_id=ml.package_id, owner_id=ml.owner_id,
                                                                       strict=True)
                         if untracked_qty:
                             taken_from_untracked_qty = min(untracked_qty, abs(quantity))
                             Quant._update_available_quantity(ml.product_id, ml.location_id, -taken_from_untracked_qty,
-                                                             lot_id=False, plaque_id=False, package_id=ml.package_id,
+                                                             lot_id=False, plaque_id=False, model_id=False, package_id=ml.package_id,
                                                              owner_id=ml.owner_id, fee_unit=ml.fee_unit, contract_date=ml.contract_date,
                                                              contract_date_end=ml.contract_date_end)
                             Quant._update_available_quantity(ml.product_id, ml.location_id, taken_from_untracked_qty,
-                                                             lot_id=ml.lot_id, plaque_id=ml.plaque_id, package_id=ml.package_id,
+                                                             lot_id=ml.lot_id, plaque_id=ml.plaque_id, model_id=ml.model_id, package_id=ml.package_id,
                                                              owner_id=ml.owner_id, fee_unit=ml.fee_unit, contract_date=ml.contract_date,
                                                              contract_date_end=ml.contract_date_end)
-                    Quant._update_available_quantity(ml.product_id, ml.location_dest_id, quantity, lot_id=ml.lot_id, plaque_id=ml.plaque_id,
+                    Quant._update_available_quantity(ml.product_id, ml.location_dest_id, quantity, lot_id=ml.lot_id, plaque_id=ml.plaque_id, model_id=ml.model_id,
                                                      package_id=ml.result_package_id, owner_id=ml.owner_id,
                                                      in_date=in_date, fee_unit=ml.fee_unit, contract_date=ml.contract_date,
                                                      contract_date_end=ml.contract_date_end)
@@ -123,6 +126,7 @@ class StockMoveLine(models.Model):
             ('location_dest_id', 'stock.location'),
             ('lot_id', 'stock.production.lot'),
             ('plaque_id', 'stock_production_plaque'),
+            ('model_id', 'stock_production_model'),
             ('package_id', 'stock.quant.package'),
             ('result_package_id', 'stock.quant.package'),
             ('owner_id', 'res.partner'),
@@ -202,10 +206,10 @@ class StockMoveLine(models.Model):
             for ml in mls:
                 # undo the original move line
                 qty_done_orig = ml.product_uom_id._compute_quantity(ml.qty_done, ml.move_id.product_id.uom_id, rounding_method='HALF-UP')
-                in_date = Quant._update_available_quantity(ml.product_id, ml.location_dest_id, -qty_done_orig, lot_id=ml.lot_id, plaque_id=ml.plaque_id,
+                in_date = Quant._update_available_quantity(ml.product_id, ml.location_dest_id, -qty_done_orig, lot_id=ml.lot_id, plaque_id=ml.plaque_id, model_id=ml.model_id,
                                                            package_id=ml.result_package_id, owner_id=ml.owner_id, fee_unit=ml.fee_unit, contract_date=ml.contract_date,
                                                            contract_date_end=ml.contract_date_end)[1]
-                Quant._update_available_quantity(ml.product_id, ml.location_id, qty_done_orig, lot_id=ml.lot_id, plaque_id=ml.plaque_id,
+                Quant._update_available_quantity(ml.product_id, ml.location_id, qty_done_orig, lot_id=ml.lot_id, plaque_id=ml.plaque_id, model_id=ml.model_id,
                                                  package_id=ml.package_id, owner_id=ml.owner_id, in_date=in_date, fee_unit=ml.fee_unit, contract_date=ml.contract_date,
                                                  contract_date_end=ml.contract_date_end)
 
@@ -216,6 +220,7 @@ class StockMoveLine(models.Model):
                 qty_done = vals.get('qty_done', ml.qty_done)
                 lot_id = updates.get('lot_id', ml.lot_id)
                 plaque_id = updates.get('plaque_id', ml.plaque_id)
+                model_id = updates.get('model_id', ml.model_id)
                 fee_unit = updates.get('fee_unit', ml.fee_unit)
                 contract_date = updates.get('contract_date', ml.contract_date)
                 contract_date_end = updates.get('contract_date_end', ml.contract_date_end)
@@ -227,20 +232,20 @@ class StockMoveLine(models.Model):
                 if not ml.move_id._should_bypass_reservation(location_id):
                     ml._free_reservation(product_id, location_id, quantity, lot_id=lot_id, package_id=package_id, owner_id=owner_id)
                 if not float_is_zero(quantity, precision_digits=precision):
-                    available_qty, in_date = Quant._update_available_quantity(product_id, location_id, -quantity, lot_id=lot_id, plaque_id=plaque_id, package_id=package_id, owner_id=owner_id,
+                    available_qty, in_date = Quant._update_available_quantity(product_id, location_id, -quantity, lot_id=lot_id, plaque_id=plaque_id, model_id=model_id, package_id=package_id, owner_id=owner_id,
                                                                               fee_unit=fee_unit, contract_date=contract_date, contract_date_end=contract_date_end)
                     if available_qty < 0 and lot_id:
                         # see if we can compensate the negative quants with some untracked quants
-                        untracked_qty = Quant._get_available_quantity(product_id, location_id, lot_id=False, plaque_id=False, package_id=package_id, owner_id=owner_id, strict=True)
+                        untracked_qty = Quant._get_available_quantity(product_id, location_id, lot_id=False, plaque_id=False, model_id=False, package_id=package_id, owner_id=owner_id, strict=True)
                         if untracked_qty:
                             taken_from_untracked_qty = min(untracked_qty, abs(available_qty))
-                            Quant._update_available_quantity(product_id, location_id, -taken_from_untracked_qty, lot_id=False, plaque_id=False, package_id=package_id, owner_id=owner_id,
+                            Quant._update_available_quantity(product_id, location_id, -taken_from_untracked_qty, lot_id=False, plaque_id=False, model_id=False, package_id=package_id, owner_id=owner_id,
                                                              fee_unit=fee_unit, contract_date=contract_date, contract_date_end=contract_date_end)
-                            Quant._update_available_quantity(product_id, location_id, taken_from_untracked_qty, lot_id=lot_id, plaque_id=plaque_id, package_id=package_id, owner_id=owner_id,
+                            Quant._update_available_quantity(product_id, location_id, taken_from_untracked_qty, lot_id=lot_id, plaque_id=plaque_id, model_id=model_id, package_id=package_id, owner_id=owner_id,
                                                              fee_unit=fee_unit, contract_date=contract_date, contract_date_end=contract_date_end)
                             if not ml.move_id._should_bypass_reservation(location_id):
                                 ml._free_reservation(ml.product_id, location_id, untracked_qty, lot_id=False, package_id=package_id, owner_id=owner_id)
-                    Quant._update_available_quantity(product_id, location_dest_id, quantity, lot_id=lot_id, plaque_id=plaque_id, package_id=result_package_id, owner_id=owner_id, in_date=in_date,
+                    Quant._update_available_quantity(product_id, location_dest_id, quantity, lot_id=lot_id, plaque_id=plaque_id, model_id=model_id, package_id=result_package_id, owner_id=owner_id, in_date=in_date,
                                                      fee_unit=fee_unit, contract_date=contract_date, contract_date_end=contract_date_end)
 
                 # Unreserve and reserve following move in order to have the real reserved quantity on move_line.
@@ -372,18 +377,18 @@ class StockMoveLine(models.Model):
 
                 # move what's been actually done
                 quantity = ml.product_uom_id._compute_quantity(ml.qty_done, ml.move_id.product_id.uom_id, rounding_method='HALF-UP')
-                available_qty, in_date = Quant._update_available_quantity(ml.product_id, ml.location_id, -quantity, lot_id=ml.lot_id, plaque_id=ml.plaque_id, package_id=ml.package_id, owner_id=ml.owner_id,
+                available_qty, in_date = Quant._update_available_quantity(ml.product_id, ml.location_id, -quantity, lot_id=ml.lot_id, plaque_id=ml.plaque_id, model_id=ml.model_id, package_id=ml.package_id, owner_id=ml.owner_id,
                                                                           fee_unit=ml.fee_unit, contract_date=ml.contract_date, contract_date_end=ml.contract_date_end)
                 if available_qty < 0 and ml.lot_id:
                     # see if we can compensate the negative quants with some untracked quants
                     untracked_qty = Quant._get_available_quantity(ml.product_id, ml.location_id, lot_id=False, package_id=ml.package_id, owner_id=ml.owner_id, strict=True)
                     if untracked_qty:
                         taken_from_untracked_qty = min(untracked_qty, abs(quantity))
-                        Quant._update_available_quantity(ml.product_id, ml.location_id, -taken_from_untracked_qty, lot_id=False, plaque_id=False, package_id=ml.package_id, owner_id=ml.owner_id,
+                        Quant._update_available_quantity(ml.product_id, ml.location_id, -taken_from_untracked_qty, lot_id=False, plaque_id=False, model_id=False, package_id=ml.package_id, owner_id=ml.owner_id,
                                                          fee_unit=ml.fee_unit, contract_date=ml.contract_date, contract_date_end=ml.contract_date_end)
-                        Quant._update_available_quantity(ml.product_id, ml.location_id, taken_from_untracked_qty, lot_id=ml.lot_id, plaque_id=ml.plaque_id, package_id=ml.package_id, owner_id=ml.owner_id,
+                        Quant._update_available_quantity(ml.product_id, ml.location_id, taken_from_untracked_qty, lot_id=ml.lot_id, plaque_id=ml.plaque_id, model_id=ml.model_id, package_id=ml.package_id, owner_id=ml.owner_id,
                                                          fee_unit=ml.fee_unit, contract_date=ml.contract_date, contract_date_end=ml.contract_date_end)
-                Quant._update_available_quantity(ml.product_id, ml.location_dest_id, quantity, lot_id=ml.lot_id, plaque_id=ml.plaque_id, package_id=ml.result_package_id, owner_id=ml.owner_id, in_date=in_date,
+                Quant._update_available_quantity(ml.product_id, ml.location_dest_id, quantity, lot_id=ml.lot_id, plaque_id=ml.plaque_id, model_id=ml.model_id, package_id=ml.result_package_id, owner_id=ml.owner_id, in_date=in_date,
                                                  fee_unit=ml.fee_unit, contract_date=ml.contract_date, contract_date_end=ml.contract_date_end)
             ml_ids_to_ignore.add(ml.id)
         # Reset the reserved quantity as we just moved it to the destination location.

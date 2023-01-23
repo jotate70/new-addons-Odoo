@@ -10,9 +10,9 @@ class purchase_requisition_line_extend(models.Model):
     image_product = fields.Binary(string='Imagen', related='product_id.image_1920')
     product_qty = fields.Float(string='Quantity', digits='Product Unit of Measure')
     available_quantity_total = fields.Float(string='Stock', related='product_id.available_stock',
-                                 help='Muestra la cantidad disponible que está sin reservar')
+                                            help='Muestra la cantidad disponible que está sin reservar')
     qty_location = fields.Float(string='Disponible', store=True,
-                                 help='Muestra la cantidad disponible en la ubicación selecionada del producto')
+                                help='Muestra la cantidad disponible en la ubicación selecionada del producto')
     location = fields.Many2one(comodel_name='location_warehouse', string='Locación',
                                                help='Muestra la ubicación de la ciudad/locación del producto')
     location_id_domain = fields.Char(compute="_compute_location_stock_picking", readonly=True, store=False)
@@ -41,7 +41,7 @@ class purchase_requisition_line_extend(models.Model):
                                           help='Solo se permite una ubicación de transito por almacen, está ubicación de transito es usada para ordenes de compra.')
     qty_received = fields.Float(string="Recibido", digits='Product Unit of Measure', help="Indica la cantidad de productos recibidos en la etapa transito.")
     received = fields.Boolean(string="Recibido")
-    qty_received2 = fields.Float(string="Entregado", digits='Product Unit of Measure 2',  help="Indica la cantidad de productos entrgado al cliente, etapa 2.")
+    qty_received2 = fields.Float(string="Entregado", digits='Product Unit of Measure 2', help="Indica la cantidad de productos entrgado al cliente, etapa 2.")
     received2 = fields.Boolean(string="Entregado")
 
     # Calcular cantidad de productos stock picking

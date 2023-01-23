@@ -7,7 +7,7 @@ class employee_extend(models.Model):
     _inherit = 'hr.employee'
 
     approve_manager_budget_settings = fields.Boolean(string='Activar presupuesto', compute='get_requisition')
-    parent_optional_id = fields.Many2one(comodel_name='hr.employee', string='Aprobador opcional', help='Permite tener una alternativa para un aprobador sin tope en caso de ausencia.')
+    parent_optional_id = fields.Many2one(comodel_name='hr.employee.public', string='Aprobador opcional', help='Permite tener una alternativa para un aprobador sin tope en caso de ausencia.')
     active_budget = fields.Boolean(string='Es responsable de presupuesto.',
                                    help='Está check activa la opción de asignar presupiesto al empleado.')
     general_manager = fields.Boolean(string='Sin tope de presupuesto.',

@@ -396,7 +396,8 @@ class PurchaseOrder(models.Model):
                 if self.aprove_manager.user_id == self.env.user:
                     # niveles de aprobación dependiendo el monto asignado al jefe inmediato y presupuesto asignado
                     # si cumple la condición aprueba la orden, si no, pide un nivel más, NOTA: AÑADIR CODIGO REPETIDO A UNA FUNCIÓN -----------------------------------
-                    if self.amount_untaxed <= self.aprove_manager.person_budget:
+                    #rate =  self.env['res.currency.rate'].search([('currency_id', '=', self.currency_id)], order="id desc", limit=1)
+                    if self.amount_untaxed * self.currency_id.inverse_company_rate <= self.aprove_manager.person_budget:
                         #  Marca actividad como hecha de forma automatica
                         new_activity = self.env['mail.activity'].search([('id', '=', self.activity_id)], limit=1)
                         new_activity.action_feedback(feedback='Es aprobado')

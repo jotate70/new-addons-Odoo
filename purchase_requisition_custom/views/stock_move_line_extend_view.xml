@@ -9,6 +9,7 @@
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='lot_id']" position="after">
                     <field name="plaque_id"/>
+                    <field name="model_id"/>
                 </xpath>
                 <xpath expr="//field[@name='product_uom_id']" position="after">
                     <field name="fee_unit" optional="show"/>
@@ -26,6 +27,7 @@
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='lot_id']" position="after">
                     <field name="plaque_id"/>
+                    <field name="model_id"/>
                     <field name="fee_unit"/>
                     <field name="fee_subtotal" optional="show"/>
                     <field name="contract_date" optional="hide" invisible=""/>
